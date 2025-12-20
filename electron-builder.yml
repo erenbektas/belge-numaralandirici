@@ -1,11 +1,13 @@
 appId: com.electron.app
-productName: app
+productName: Belge Düzenleyici
 directories:
+  output: dist
+  buildResources: build
+extraResources:
   - from: resources
     to: .
     filter:
       - "**/*"
-extraResources:
   - from: resources/scripts
     to: resources/scripts
 files:

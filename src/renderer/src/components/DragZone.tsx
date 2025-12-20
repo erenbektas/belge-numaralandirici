@@ -4,10 +4,9 @@ import clsx from 'clsx';
 
 interface DragZoneProps {
     onFilesDropped: (files: File[]) => void;
-    onFolderSelect: () => void;
 }
 
-export function DragZone({ onFilesDropped, onFolderSelect }: DragZoneProps) {
+export function DragZone({ onFilesDropped }: DragZoneProps) {
     const [isDragActive, setIsDragActive] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 

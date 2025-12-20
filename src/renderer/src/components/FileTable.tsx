@@ -1,7 +1,5 @@
-import React from 'react';
+import { Trash2, FileText, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { DocumentItem } from '../types';
-import { FileText, Trash2, CheckCircle, Clock, AlertCircle } from 'lucide-react';
-import clsx from 'clsx';
 
 interface FileTableProps {
     documents: DocumentItem[];

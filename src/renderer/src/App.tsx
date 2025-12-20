@@ -308,7 +308,7 @@ function App() {
         {view === 'upload' ? (
           <div className="h-full flex gap-4">
             <div className="w-1/3 min-w-[340px] flex flex-col h-full">
-              <DragZone onFilesDropped={handleFilesDropped} onFolderSelect={() => { }} />
+              <DragZone onFilesDropped={handleFilesDropped} />
             </div>
             <div className="flex-1 h-full glass-panel overflow-hidden">
               <FileTable documents={documents} onRemove={(id) => setDocuments(prev => prev.filter(d => d.id !== id))} />

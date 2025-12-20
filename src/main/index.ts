@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { setupFileHandlers } from './fileHandlers';
 import icon from '../../resources/icon.png?asset'
