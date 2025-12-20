@@ -61,7 +61,7 @@ npm run build:linux
 
 **Y. Eren Bektaş** — Aralık 2025
 
-> 🤖 Bu uygulama **Google Antigravity** yapay zeka asistanı ile birlikte geliştirilmiştir.
+> 🤖 Bu uygulama **Google Antigravity** ile birlikte geliştirilmiştir.
 
 ## İndirme
 
