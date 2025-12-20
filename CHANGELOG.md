@@ -1,6 +1,6 @@
 # Değişiklik Günlüğü (Changelog)
 
-## [Yayınlanmamış]
+## v1.5.0 - 2025-12-20
 
 ### Eklendi
 - **MSG Dosya Desteği:** Artık Outlook (.msg) dosyalarını sürükleyip bırakarak PDF'e dönüştürebilirsiniz.
