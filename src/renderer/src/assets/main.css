@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-pure-black text-text-main font-sans antialiased;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-surface-dark border border-border-dark rounded-2xl;
+  }
+
+  .glass-card {
+    @apply bg-surface-light border border-white/5 rounded-xl transition-all duration-300;
+  }
+
+  .btn-glass {
+    @apply px-4 py-2 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 active:scale-95 transition-all duration-200 font-medium;
+  }
+}
+
+/* Scrollbar customization */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-white/10 rounded-full hover:bg-white/20;
+}
+
+/* Indeterminate progress bar animation */
+@keyframes indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  50% {
+    transform: translateX(200%);
+  }
+
+  100% {
+    transform: translateX(-100%);
+  }
+}

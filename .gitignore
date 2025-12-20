@@ -1,0 +1,12 @@
+node_modules
+dist
+out
+release
+.DS_Store
+.eslintcache
+*.log*
+*.local
+.idea
+*.swp
+*.swo
+package-lock.json
