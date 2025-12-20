@@ -4,7 +4,8 @@
 
 @layer base {
   body {
-    @apply bg-pure-black text-text-main font-sans antialiased;
+    @apply bg-pure-black text-text-main antialiased;
+    font-family: 'Inter', sans-serif;
   }
 }
 
@@ -49,4 +50,36 @@
   100% {
     transform: translateX(-100%);
   }
+}
+
+/* Easter Egg: Realistic Card Fall */
+@keyframes leaf-fall {
+  0% {
+    transform: translate(0, 0) rotate(-12deg);
+  }
+
+  20% {
+    transform: translate(-40px, 20vh) rotate(-30deg);
+  }
+
+  40% {
+    transform: translate(50px, 45vh) rotate(15deg);
+  }
+
+  60% {
+    transform: translate(-60px, 70vh) rotate(-45deg);
+  }
+
+  80% {
+    transform: translate(40px, 90vh) rotate(20deg);
+  }
+
+  100% {
+    transform: translate(0, 120vh) rotate(-10deg);
+    opacity: 0;
+  }
+}
+
+.animate-leaf-fall {
+  animation: leaf-fall 2.5s ease-in forwards !important;
 }

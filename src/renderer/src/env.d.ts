@@ -7,6 +7,7 @@ declare global {
             convertFile: (path: string) => Promise<Uint8Array>;
             readFile: (path: string) => Promise<Uint8Array>;
             getFilePath: (file: File) => string;
+            openExternal: (url: string) => Promise<void>;
         }
     }
 }

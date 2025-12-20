@@ -5,6 +5,10 @@ param (
 
 $ErrorActionPreference = "Stop"
 
+# Force UTF8 for input/output to avoid encoding mangling between Node and PS
+[Console]::InputEncoding = [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+
 function Convert-Word {
     param($in, $out)
     Write-Host "Converting Word document: $in -> $out"
@@ -64,24 +68,33 @@ function Convert-PowerPoint {
 function Convert-Outlook {
     param($in, $out)
     $outlook = New-Object -ComObject Outlook.Application
-    # Outlook usually needs to be running or it starts. 
-    # Requires security access sometimes.
+    
+    # Create a temp HTML file path
+    $tempHtml = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), [System.IO.Path]::GetRandomFileName() + ".html")
     
     try {
         $namespace = $outlook.GetNamespace("MAPI")
         $namespace.Logon("", "", $false, $false)
         
         $item = $namespace.OpenSharedItem($in)
-        $inspector = $item.GetInspector
-        $doc = $inspector.WordEditor # Uses Word engine for editing
         
-        $doc.SaveAs([ref] $out, [ref] 17) # wdFormatPDF = 17
+        # Save as HTML (olHTML = 4)
+        $item.SaveAs($tempHtml, 4)
         
-        $item.Close(0) # olDiscard = 0
+        # Now use Word to convert the HTML to PDF
+        Convert-Word $tempHtml $out
     }
     finally {
-        # Do not quit Outlook as it might be the user's main instance.
-        # Just release object.
+        # Release Item
+        if ($item) {
+            try { $item.Close(0) } catch {}
+            [System.Runtime.Interopservices.Marshal]::ReleaseComObject($item) | Out-Null
+        }
+
+        # Clean up temp HTML
+        if (Test-Path $tempHtml) { Remove-Item $tempHtml -Force }
+        
+        # Release Outlook
         [System.Runtime.Interopservices.Marshal]::ReleaseComObject($outlook) | Out-Null
     }
 }

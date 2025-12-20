@@ -14,7 +14,8 @@ const api = {
       console.error(`[Preload] Error getting path for ${file.name}:`, e);
       throw e;
     }
-  }
+  },
+  openExternal: (url: string): Promise<void> => ipcRenderer.invoke('open-external', url)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

@@ -11,6 +11,7 @@ export interface DocumentItem {
     numberDisplay: string;
     sortKey: number;
     status: 'pending' | 'converting' | 'ready' | 'error';
+    pdfBuffer?: Uint8Array;
 }
 
 export interface PageItem {

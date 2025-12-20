@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { PageItem, DocumentItem } from '../types';
 import * as pdfjsLib from 'pdfjs-dist';
-// @ts-ignore
-import workerSrc from 'pdfjs-dist/build/pdf.worker?url';
-
+const workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.min.mjs',
+    import.meta.url,
+).toString();
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
-
-const pdfBufferCache: Map<string, ArrayBuffer> = new Map();
 
 interface PreviewGridProps {
     pages: PageItem[];
@@ -20,6 +19,8 @@ function PageCard({ page, doc, onRotate }: { page: PageItem, doc: DocumentItem, 
     const [error, setError] = useState<string | null>(null);
     const [imageSrc, setImageSrc] = useState<string | null>(null);
 
+    const renderTaskRef = useRef<any>(null);
+
     useEffect(() => {
         let cancelled = false;
 
@@ -28,14 +29,14 @@ function PageCard({ page, doc, onRotate }: { page: PageItem, doc: DocumentItem, 
             setError(null);
             setImageSrc(null);
 
+            // Cancel any existing render task on this canvas
+            if (renderTaskRef.current) {
+                try { await renderTaskRef.current.cancel(); } catch (e) { }
+            }
+
             try {
-                if (doc.type === 'pdf' && doc.path && canvasRef.current) {
-                    let arrayBuffer = pdfBufferCache.get(doc.path);
-                    if (!arrayBuffer) {
-                        const uint8 = await window.api.convertFile(doc.path);
-                        arrayBuffer = uint8.buffer as ArrayBuffer;
-                        pdfBufferCache.set(doc.path, arrayBuffer);
-                    }
+                if (doc.type === 'pdf' && doc.pdfBuffer && canvasRef.current) {
+                    const arrayBuffer = doc.pdfBuffer.buffer as ArrayBuffer;
 
                     if (cancelled) return;
 
@@ -46,10 +47,19 @@ function PageCard({ page, doc, onRotate }: { page: PageItem, doc: DocumentItem, 
 
                     const canvas = canvasRef.current;
                     const ctx = canvas.getContext('2d');
-                    if (ctx) {
+                    if (ctx && !cancelled) {
                         canvas.width = viewport.width;
                         canvas.height = viewport.height;
-                        await pdfPage.render({ canvasContext: ctx, viewport } as any).promise;
+
+                        const renderTask = pdfPage.render({ canvasContext: ctx, viewport } as any);
+                        renderTaskRef.current = renderTask;
+
+                        try {
+                            await renderTask.promise;
+                        } catch (e: any) {
+                            if (e.name === 'RenderingCancelledException') return;
+                            throw e;
+                        }
                     }
                 } else if (doc.type === 'image' && doc.path) {
                     const uint8 = await window.api.readFile(doc.path);
@@ -76,7 +86,12 @@ function PageCard({ page, doc, onRotate }: { page: PageItem, doc: DocumentItem, 
         };
 
         render();
-        return () => { cancelled = true; };
+        return () => {
+            cancelled = true;
+            if (renderTaskRef.current) {
+                renderTaskRef.current.cancel();
+            }
+        };
     }, [page, doc]);
 
     return (

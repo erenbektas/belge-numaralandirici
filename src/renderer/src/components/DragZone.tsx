@@ -4,22 +4,28 @@ import clsx from 'clsx';
 
 interface DragZoneProps {
     onFilesDropped: (files: File[]) => void;
+    isFull?: boolean;
 }
 
-export function DragZone({ onFilesDropped }: DragZoneProps) {
+export function DragZone({ onFilesDropped, isFull }: DragZoneProps) {
     const [isDragActive, setIsDragActive] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
+    const dragCounter = useRef(0);
 
     const handleDragEnter = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
+        dragCounter.current++;
         setIsDragActive(true);
     }, []);
 
     const handleDragLeave = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        setIsDragActive(false);
+        dragCounter.current--;
+        if (dragCounter.current === 0) {
+            setIsDragActive(false);
+        }
     }, []);
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -31,6 +37,7 @@ export function DragZone({ onFilesDropped }: DragZoneProps) {
         e.preventDefault();
         e.stopPropagation();
         setIsDragActive(false);
+        dragCounter.current = 0;
 
         // Access native FileList directly from dataTransfer
         const dt = e.dataTransfer;
@@ -62,11 +69,21 @@ export function DragZone({ onFilesDropped }: DragZoneProps) {
             onDragOver={handleDragOver}
             onDrop={handleDrop}
             className={clsx(
-                "flex-1 bg-surface-dark border border-border-dark rounded-2xl flex flex-col items-center justify-center min-h-[250px] transition-all cursor-pointer relative overflow-hidden group",
-                isDragActive ? "border-blue-500 bg-blue-500/5 shadow-[0_0_20px_rgba(59,130,246,0.1)]" : "hover:bg-white/[0.02]"
+                "bg-white/[0.02] border transition-all duration-500 cursor-pointer relative overflow-hidden group flex items-center justify-center",
+                isFull
+                    ? "flex-col gap-6 rounded-full w-[450px] h-[450px] aspect-square shadow-[0_0_80px_rgba(0,0,0,0.5)] border-white/10"
+                    : "h-full w-full flex-row gap-6 px-10 rounded-3xl border-white/5",
+                isDragActive
+                    ? clsx(
+                        "border-blue-500/50 bg-blue-500/10",
+                        isFull && "shadow-[0_0_60px_rgba(59,130,246,0.1)] scale-[1.05]"
+                    )
+                    : clsx(
+                        "hover:border-white/20 hover:bg-white/[0.04]",
+                        isFull && "hover:scale-[1.05]"
+                    )
             )}
         >
-
             <input
                 ref={inputRef}
                 type="file"
@@ -75,21 +92,54 @@ export function DragZone({ onFilesDropped }: DragZoneProps) {
                 onChange={handleInputChange}
             />
 
+            {/* Content Wrapper for counter-scaling in Full Mode */}
             <div className={clsx(
-                "w-16 h-16 rounded-2xl flex items-center justify-center mb-5 transition-all duration-300",
-                isDragActive ? "bg-blue-600 text-white scale-110" : "bg-white/5 text-blue-400 group-hover:scale-110 border border-white/5"
+                "flex transition-all duration-500 z-10",
+                isFull ? "flex-col items-center gap-6" : "flex-row items-center gap-6 w-full",
+                isFull && (isDragActive ? "scale-[0.95]" : "group-hover:scale-[0.95]")
             )}>
-                <Upload size={28} />
+                {/* Icon Wrapper */}
+                <div className={clsx(
+                    "flex items-center justify-center transition-all duration-500 flex-shrink-0 relative",
+                    isFull ? "w-28 h-28 rounded-3xl bg-blue-600/10 text-blue-500 border-2 border-blue-500/20 shadow-2xl" : "w-14 h-14 rounded-2xl bg-white/5 text-blue-400 border border-white/10",
+                    isDragActive ? "scale-110 bg-blue-600 text-white border-transparent" : "group-hover:scale-105 group-hover:text-blue-300"
+                )}>
+                    <Upload size={isFull ? 48 : 24} className={clsx("transition-transform duration-500 z-10", isDragActive ? "translate-y-[-4px]" : "")} />
+
+                    {/* Smooth Breathing Glow when drag active */}
+                    {isDragActive && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+                            <div className={clsx("w-full h-full rounded-full bg-blue-500/40 animate-pulse", isFull ? "blur-2xl" : "blur-xl")} />
+                            <div className={clsx("absolute w-1/2 h-1/2 rounded-full bg-blue-400/60 animate-pulse delay-75", isFull ? "blur-xl" : "blur-lg")} />
+                        </div>
+                    )}
+                </div>
+
+                {/* Text Content */}
+                <div className={clsx("flex flex-col transition-all duration-500", isFull ? "items-center text-center" : "text-left")}>
+                    <strong className={clsx(
+                        "text-white block font-black tracking-tight leading-none transition-all",
+                        isFull ? "text-4xl mb-4" : "text-xl mb-1.5",
+                        isDragActive ? "text-blue-400" : ""
+                    )}>
+                        {isDragActive ? "Dosyaları Bırakın" : (isFull ? "Dosyaları Sürükleyin / Seçin" : "Dosyaları Sürükleyin veya Seçin")}
+                    </strong>
+                    <p className={clsx(
+                        "text-white/30 font-bold tracking-[0.3em] transition-all",
+                        isFull ? "text-base" : "text-[12px]",
+                        isDragActive ? "text-blue-400/50" : ""
+                    )}>
+                        {isFull ? "PDF, Görsel, Office, MSG" : "PDF, Görsel, Office, MSG"}
+                    </p>
+                </div>
             </div>
 
-            <div className="text-center z-10">
-                <strong className="text-white block text-xl font-bold tracking-tight mb-2">
-                    {isDragActive ? "Bırakın..." : "Dosyaları Seçin veya Sürükleyin"}
-                </strong>
-                <p className="text-sm text-white/40 font-medium">
-                    PDF, Görseller, Word, Excel desteği
-                </p>
-            </div>
+            {/* Animated Grid Background */}
+            <div className={clsx(
+                "absolute inset-0 opacity-[0.03] pointer-events-none group-hover:opacity-[0.05] transition-all duration-500",
+                isFull && (isDragActive ? "scale-[0.95]" : "group-hover:scale-[0.95]")
+            )}
+                style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
         </div>
     );
 }

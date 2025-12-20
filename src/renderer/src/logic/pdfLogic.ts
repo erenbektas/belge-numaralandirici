@@ -2,7 +2,9 @@ import { PDFDocument, rgb, degrees, StandardFonts } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
 
 export async function getPdfPageCount(buffer: ArrayBuffer): Promise<number> {
-    const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+    // Slice to avoid detaching the original buffer
+    const copy = buffer.slice(0);
+    const pdf = await pdfjsLib.getDocument({ data: copy }).promise;
     return pdf.numPages;
 }
 
@@ -18,7 +20,7 @@ export async function createStampedPDF(
         let addedPage;
 
         if (pageData.type === 'pdf') {
-            const sourcePdf = await PDFDocument.load(pageData.docBuffer);
+            const sourcePdf = await PDFDocument.load(pageData.docBuffer.slice(0));
             const [copiedPage] = await pdfDoc.copyPages(sourcePdf, [pageData.pageNum - 1]);
             copiedPage.setRotation(degrees(pageData.rotation));
             addedPage = pdfDoc.addPage(copiedPage);
@@ -91,4 +93,66 @@ export async function createStampedPDF(
     }
 
     return await pdfDoc.save();
+}
+
+export interface CompressionSettings {
+    dpi: number;
+    quality: number;
+}
+
+export async function compressPDF(
+    pdfBuffer: ArrayBuffer,
+    settings: CompressionSettings,
+    onProgress?: (current: number, total: number) => void
+): Promise<Uint8Array> {
+    // Copy the buffer to avoid detachment issues if getDocument consumes it
+    const dataCopy = pdfBuffer.slice(0);
+    const pdf = await pdfjsLib.getDocument({ data: dataCopy }).promise;
+    const numPages = pdf.numPages;
+    const resultPdf = await PDFDocument.create();
+
+    for (let i = 1; i <= numPages; i++) {
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({ scale: settings.dpi / 72 });
+
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error('Could not get canvas context');
+
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+
+        await page.render({
+            canvasContext: context,
+            viewport: viewport,
+            canvas: canvas
+        }).promise;
+
+        const imageDataUrl = canvas.toDataURL('image/jpeg', settings.quality);
+
+        // Manual base64 to Uint8Array to avoid 'fetch' issues in some Electron environments
+        const base64Data = imageDataUrl.split(',')[1];
+        const binaryString = atob(base64Data);
+        const imageBytes = new Uint8Array(binaryString.length);
+        for (let j = 0; j < binaryString.length; j++) {
+            imageBytes[j] = binaryString.charCodeAt(j);
+        }
+
+        const image = await resultPdf.embedJpg(imageBytes);
+        const newPage = resultPdf.addPage([viewport.width, viewport.height]);
+        newPage.drawImage(image, {
+            x: 0,
+            y: 0,
+            width: viewport.width,
+            height: viewport.height,
+        });
+
+        if (onProgress) onProgress(i, numPages);
+
+        // Cleanup to prevent memory leaks during processing
+        canvas.width = 0;
+        canvas.height = 0;
+    }
+
+    return await resultPdf.save();
 }

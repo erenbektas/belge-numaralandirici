@@ -1,19 +1,33 @@
 import { useState, useEffect } from 'react';
+import clsx from 'clsx';
+import jackAsset from './assets/jack.png';
 import { DragZone } from './components/DragZone';
 import { FileTable } from './components/FileTable';
 import { PreviewGrid } from './components/PreviewGrid';
+import { DownloadSummary } from './components/DownloadSummary';
 import { DocumentItem, PageItem } from './types';
 import { extractNumber } from './utils';
-import { getPdfPageCount, createStampedPDF } from './logic/pdfLogic';
-import { ArrowRight, Download, Info, X } from 'lucide-react';
+import { getPdfPageCount, createStampedPDF, compressPDF, CompressionSettings } from './logic/pdfLogic';
+import { ArrowRight, Info, Github, FileStack } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 function App() {
-  const [view, setView] = useState<'upload' | 'preview'>('upload');
+  const [view, setView] = useState<'upload' | 'preview' | 'summary'>('upload');
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [pages, setPages] = useState<PageItem[]>([]);
   const [isStamping, setIsStamping] = useState(false);
-  const [showInfo, setShowInfo] = useState(false);
+  const [pdfData, setPdfData] = useState<Uint8Array | null>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
+  const [compressionProgress, setCompressionProgress] = useState(0);
+  const [showCredits, setShowCredits] = useState(false);
+  const [jackVisible, setJackVisible] = useState(true);
+  const [jackFalling, setJackFalling] = useState(false);
+
+  // Warning modal state
+  const [warningModal, setWarningModal] = useState<{
+    type: 'unnumbered' | 'unsupported' | null;
+    files: string[];
+  }>({ type: null, files: [] });
 
   const handleStampAndDownload = async () => {
     if (pages.length === 0) return;
@@ -25,14 +39,20 @@ function App() {
         const doc = documents.find(d => d.id === page.docId);
         if (!doc) throw new Error(`Document not found for page ${page.globalPageNum}`);
 
-        // Fetch the PDF buffer (convertFile handles both native PDFs and conversion)
-        const uint8 = await window.api.convertFile(doc.path);
+        // Use cached PDF buffer or fetch if missing (fallback)
+        let buffer: Uint8Array;
+        if (doc.pdfBuffer) {
+          buffer = doc.pdfBuffer;
+        } else {
+          console.warn(`[App] Buffer missing for ${doc.name}, fetching again...`);
+          buffer = await window.api.convertFile(doc.path);
+        }
 
         return {
-          docBuffer: uint8.buffer as ArrayBuffer,
+          docBuffer: buffer.buffer as ArrayBuffer,
           pageNum: page.pageNum,
           rotation: page.rotation,
-          stampText: page.stampText || undefined, // Use document number, not page number
+          stampText: page.stampText || undefined,
           type: doc.type
         };
       });
@@ -41,25 +61,49 @@ function App() {
 
       // Create stamped PDF
       const pdfBytes = await createStampedPDF(pageData);
-
-      // Trigger download
-      const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `HASAR BELGELERİ.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      console.log('[App] PDF stamped and downloaded successfully');
+      setPdfData(pdfBytes);
+      setView('summary');
+      console.log('[App] PDF generated and summary view shown');
     } catch (e: any) {
-      console.error('[App] Stamping failed:', e);
-      alert(`Stamping failed: ${e.message}`);
+      console.error('[App] PDF Generation failed:', e);
+      alert(`Oluşturma Başarısız: ${e.message}`);
     } finally {
       setIsStamping(false);
     }
+  };
+
+  const handleDownloadOriginal = () => {
+    if (!pdfData) return;
+    downloadBlob(pdfData, 'HASAR BELGELERİ.pdf');
+  };
+
+  const handleDownloadCompressed = async (settings: CompressionSettings) => {
+    if (!pdfData) return;
+    setIsCompressing(true);
+    setCompressionProgress(0);
+    try {
+      const compressed = await compressPDF(pdfData.buffer as ArrayBuffer, settings, (current, total) => {
+        setCompressionProgress(Math.round((current / total) * 100));
+      });
+      downloadBlob(compressed, 'HASAR BELGELERİ_SIKISTIRILMIS.pdf');
+    } catch (e: any) {
+      console.error('[App] Compression failed:', e);
+      alert(`Sıkıştırma Başarısız: ${e.message}`);
+    } finally {
+      setIsCompressing(false);
+    }
+  };
+
+  const downloadBlob = (data: Uint8Array, filename: string) => {
+    const blob = new Blob([data as BlobPart], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   // Process pending documents
@@ -76,28 +120,22 @@ function App() {
         // but if we dragged a folder, the initial 'file' object might be a directory handle or just a file in it.
         // But we can clean this up. Let's assume handleFilesDropped calls scanFolder for paths.
 
-        // 2. Convert if needed
-        let buffer: ArrayBuffer | null = null;
+        let convertedBuffer: Uint8Array | null = null;
         let pageCount = 1;
 
         if (pendingDoc.type === 'image') {
           // Images are 1 page, no conversion needed
           pageCount = 1;
-        } else if (pendingDoc.type === 'office' || pendingDoc.type === 'msg') {
-          const uint8 = await window.api.convertFile(pendingDoc.path);
-          buffer = uint8.buffer as ArrayBuffer;
-          pageCount = await getPdfPageCount(buffer);
-        } else if (pendingDoc.type === 'pdf') {
-          // Read PDF to get page count
-          const uint8 = await window.api.convertFile(pendingDoc.path);
-          buffer = uint8.buffer as ArrayBuffer;
-          pageCount = await getPdfPageCount(buffer);
+        } else if (pendingDoc.type === 'office' || pendingDoc.type === 'msg' || pendingDoc.type === 'pdf') {
+          convertedBuffer = await window.api.convertFile(pendingDoc.path);
+          pageCount = await getPdfPageCount(convertedBuffer.buffer as ArrayBuffer);
         }
 
         setDocuments(prev => prev.map(d => d.id === pendingDoc.id ? {
           ...d,
           status: 'ready',
           pageCount: pageCount,
+          pdfBuffer: convertedBuffer || undefined,
           // After conversion, treat office/msg as pdf for preview
           type: (pendingDoc.type === 'office' || pendingDoc.type === 'msg') ? 'pdf' : pendingDoc.type
         } : d));
@@ -188,14 +226,39 @@ function App() {
   };
 
   const goToPreview = async () => {
+    const readyDocs = documents.filter(d => d.status === 'ready');
+
+    // Check for unsupported files first (type === 'unknown')
+    const unsupportedDocs = documents.filter(d => d.type === 'unknown');
+    if (unsupportedDocs.length > 0) {
+      setWarningModal({
+        type: 'unsupported',
+        files: unsupportedDocs.map(d => d.name)
+      });
+      return;
+    }
+
+    // Check for unnumbered files (no numberDisplay)
+    const unnumberedDocs = readyDocs.filter(d => !d.numberDisplay || d.numberDisplay.trim() === '');
+    if (unnumberedDocs.length > 0) {
+      setWarningModal({
+        type: 'unnumbered',
+        files: unnumberedDocs.map(d => d.name)
+      });
+      return;
+    }
+
+    // All checks passed, proceed to preview
+    proceedToPreview(readyDocs);
+  };
+
+  const proceedToPreview = (docsToProcess: DocumentItem[]) => {
     // Generate pages with stamp logic from legacy code
     const allPages: PageItem[] = [];
     let globalNum = 1;
     const seenNumbers: Record<string, boolean> = {};
 
-    for (const doc of documents) {
-      if (doc.status !== 'ready') continue;
-
+    for (const doc of docsToProcess) {
       const count = doc.pageCount > 0 ? doc.pageCount : 1;
       for (let i = 1; i <= count; i++) {
         // Stamp logic: only first page of each unique document number
@@ -219,6 +282,43 @@ function App() {
     }
     setPages(allPages);
     setView('preview');
+  };
+
+  const handleWarningCancel = () => {
+    // Clear everything and go back to initial state
+    setDocuments([]);
+    setPages([]);
+    setPdfData(null);
+    setWarningModal({ type: null, files: [] });
+  };
+
+  const handleWarningSkip = () => {
+    if (warningModal.type === 'unsupported') {
+      // Remove unsupported files and re-run validation
+      const filteredDocs = documents.filter(d => d.type !== 'unknown');
+      setDocuments(filteredDocs);
+      setWarningModal({ type: null, files: [] });
+      // Re-trigger validation with filtered docs (via useEffect or direct call)
+      setTimeout(() => {
+        const readyDocs = filteredDocs.filter(d => d.status === 'ready');
+        const unnumberedDocs = readyDocs.filter(d => !d.numberDisplay || d.numberDisplay.trim() === '');
+        if (unnumberedDocs.length > 0) {
+          setWarningModal({
+            type: 'unnumbered',
+            files: unnumberedDocs.map(d => d.name)
+          });
+        } else {
+          proceedToPreview(readyDocs);
+        }
+      }, 0);
+    } else if (warningModal.type === 'unnumbered') {
+      // Remove unnumbered files and proceed
+      const filteredDocs = documents.filter(d => d.numberDisplay && d.numberDisplay.trim() !== '');
+      setDocuments(filteredDocs);
+      setWarningModal({ type: null, files: [] });
+      const readyDocs = filteredDocs.filter(d => d.status === 'ready');
+      proceedToPreview(readyDocs);
+    }
   };
 
   const handleRotate = (index: number) => {
@@ -245,44 +345,13 @@ function App() {
               <ArrowRight size={20} className="rotate-180" />
             </button>
           )}
-          <div className="flex flex-col">
-            <h1 className="font-bold text-2xl tracking-tight text-white">Belge Düzenleyici</h1>
-            <span className="text-[10px] text-white/30 font-medium uppercase tracking-[0.2em]">Grup Sigorta Ekspertiz Hizmetleri Limited Şirketi</span>
+          <div className="flex flex-col gap-1">
+            <h1 className="text-2xl font-black text-white tracking-tight leading-none">Belge Düzenleyici</h1>
+            <p className="text-white/20 text-[10px] font-black tracking-[0.3em]">Grup Sigorta Ekspertiz Hizmetleri Limited Şirketi</p>
           </div>
         </div>
 
         <div className="flex items-center gap-4">
-          {view === 'upload' && documents.length > 0 && (
-            (() => {
-              const total = documents.length;
-              const completed = documents.filter(d => d.status === 'ready' || d.status === 'error').length;
-              const isProcessing = completed < total;
-
-              if (isProcessing) {
-                const progress = Math.round((completed / total) * 100);
-                return (
-                  <div className="flex flex-col items-end gap-1.5 min-w-[140px]">
-                    <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">İşleniyor {progress}%</span>
-                    <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-blue-500 transition-all duration-500 ease-out"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              }
-
-              return (
-                <button
-                  onClick={goToPreview}
-                  className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_30px_rgba(37,99,235,0.4)] transition-all active:scale-95 animate-in fade-in zoom-in duration-300"
-                >
-                  Devam <ArrowRight size={18} />
-                </button>
-              );
-            })()
-          )}
           {view === 'preview' && (
             isStamping ? (
               <div className="flex flex-col items-end gap-1.5 min-w-[140px]">
@@ -296,7 +365,7 @@ function App() {
                 onClick={handleStampAndDownload}
                 className="bg-white text-black hover:bg-gray-100 px-8 py-2.5 rounded-xl text-sm font-black flex items-center gap-2 transition-all active:scale-95"
               >
-                Oluştur <Download size={18} />
+                Oluştur <FileStack size={18} />
               </button>
             )
           )}
@@ -304,20 +373,78 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-hidden">
+      <main className="flex-1 overflow-hidden flex flex-col gap-4">
         {view === 'upload' ? (
-          <div className="h-full flex gap-4">
-            <div className="w-1/3 min-w-[340px] flex flex-col h-full">
-              <DragZone onFilesDropped={handleFilesDropped} />
-            </div>
-            <div className="flex-1 h-full glass-panel overflow-hidden">
-              <FileTable documents={documents} onRemove={(id) => setDocuments(prev => prev.filter(d => d.id !== id))} />
-            </div>
+          <div className="h-full flex flex-col gap-4 relative">
+            {documents.length === 0 ? (
+              /* Initial State: Full Screen DragZone */
+              <div className="flex-1 flex items-center justify-center animate-in fade-in zoom-in-95 duration-500">
+                <DragZone onFilesDropped={handleFilesDropped} isFull />
+              </div>
+            ) : (
+              /* Reactive State: Compact Layout */
+              <>
+                {/* Top Row: DragZone & Devam Card */}
+                <div className="flex gap-4 h-28 flex-shrink-0 animate-in slide-in-from-top-4 duration-500">
+                  <div className="flex-1 h-full">
+                    <DragZone onFilesDropped={handleFilesDropped} />
+                  </div>
+
+                  {/* Action Card (Devam Button) */}
+                  <div className="w-72 glass-panel flex items-center justify-center p-6 bg-white/[0.02] border-white/5">
+                    {(() => {
+                      const total = documents.length;
+                      const completed = documents.filter(d => d.status === 'ready' || d.status === 'error').length;
+                      const isProcessing = completed < total;
+
+                      if (isProcessing) {
+                        const progress = Math.round((completed / total) * 100);
+                        return (
+                          <div className="flex flex-col items-center gap-3 w-full">
+                            <span className="text-[10px] font-black text-blue-500 tracking-widest text-center">İşleniyor {progress}%</span>
+                            <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-blue-500 transition-all duration-500 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <button
+                          onClick={goToPreview}
+                          className="w-full h-full bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-lg font-black flex items-center justify-center gap-3 shadow-[0_0_30px_rgba(37,99,235,0.3)] hover:shadow-[0_0_40px_rgba(37,99,235,0.5)] transition-all active:scale-[0.98] group"
+                        >
+                          Devam <ArrowRight size={24} className="group-hover:translate-x-1 transition-transform" />
+                        </button>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* Bottom Row: FileTable */}
+                <div className="flex-1 glass-panel overflow-hidden animate-in slide-in-from-bottom-4 duration-700">
+                  <FileTable documents={documents} onRemove={(id) => setDocuments(prev => prev.filter(d => d.id !== id))} />
+                </div>
+              </>
+            )}
           </div>
-        ) : (
+        ) : view === 'preview' ? (
           <div className="h-full glass-panel overflow-hidden relative">
             <PreviewGrid pages={pages} documents={documents} onRotate={handleRotate} />
           </div>
+        ) : (
+          <DownloadSummary
+            pdfData={pdfData!}
+            pageCount={pages.length}
+            onDownloadOriginal={handleDownloadOriginal}
+            onDownloadCompressed={handleDownloadCompressed}
+            onBack={goBack}
+            isCompressing={isCompressing}
+            progress={compressionProgress}
+          />
         )}
       </main>
 
@@ -326,14 +453,14 @@ function App() {
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 bg-surface-light border border-border-dark shadow-2xl flex items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500 rounded-2xl">
           <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
           <span className="text-sm font-medium text-white/70">
-            {documents.length} dosya yüklendi — Toplam {documents.reduce((acc, d) => acc + d.pageCount, 0)} sayfa
+            {documents.length} Dosya Yüklendi — Toplam {documents.reduce((acc, d) => acc + d.pageCount, 0)} Sayfa
           </span>
         </div>
       )}
       {/* Bottom Info Bar */}
       <footer className="h-8 border-t border-white/5 flex items-center px-6 justify-end flex-shrink-0 bg-black/50">
         <button
-          onClick={() => setShowInfo(true)}
+          onClick={() => setShowCredits(true)}
           className="text-white/20 hover:text-white/60 transition-colors p-1"
           title="Hakkında"
         >
@@ -341,31 +468,134 @@ function App() {
         </button>
       </footer>
 
-      {/* Info Modal / Popup */}
-      {showInfo && (
-        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-surface-light border border-white/10 p-8 rounded-3xl shadow-2xl relative max-w-sm w-full mx-4 animate-in zoom-in-95 duration-300">
-            <button
-              onClick={() => setShowInfo(false)}
-              className="absolute top-4 right-4 text-white/20 hover:text-white/60 transition-colors"
-            >
-              <X size={20} />
-            </button>
-            <div className="flex flex-col items-center text-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-blue-600/10 flex items-center justify-center text-blue-500 mb-2">
-                <Info size={32} />
+      {/* Credits Overlay */}
+      {showCredits && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300"
+          onClick={() => setShowCredits(false)}
+        >
+          <div
+            className="bg-[#0A0F1E]/40 backdrop-blur-2xl border border-white/20 p-10 rounded-[2.5rem] max-w-md w-full animate-in zoom-in-95 duration-300 relative overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Subtle radial glow background */}
+            <div className="absolute inset-0 bg-radial-at-t from-blue-500/10 to-transparent pointer-events-none" />
+            <div className="flex flex-col items-center text-center gap-6">
+              <div className="relative group/jack">
+                {jackVisible && (
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setJackFalling(true);
+                      setTimeout(() => setJackVisible(false), 2500);
+                    }}
+                    className={clsx(
+                      "absolute left-[-26px] top-1 w-[44px] h-[62px] cursor-pointer transition-all select-none",
+                      "rotate-[-13deg] z-0 origin-top-right",
+                      jackFalling ? "animate-leaf-fall pointer-events-none" : "hover:rotate-[-20deg] hover:left-[-32px]"
+                    )}
+                  >
+                    <img src={jackAsset} alt="Jack" className="w-full h-full object-contain" />
+                  </div>
+                )}
+                <div className="w-20 h-20 rounded-3xl bg-blue-600/20 flex items-center justify-center text-blue-400 border border-blue-500/20 relative z-10 backdrop-blur-sm">
+                  <Info size={40} />
+                </div>
               </div>
-              <h3 className="text-xl font-black text-white uppercase tracking-widest">Belge Düzenleyici</h3>
-              <div className="h-px w-12 bg-blue-500/50" />
-              <p className="text-white/70 font-bold text-lg">Y. Eren Bektaş</p>
-              <p className="text-white/30 text-xs font-medium uppercase tracking-[0.2em]">Aralık 2025</p>
+
+              <div>
+                <h3 className="text-2xl font-black text-white mb-2">Belge Düzenleyici</h3>
+                <p className="text-white/40 text-sm leading-relaxed">
+                  Grup Sigorta Ekspertiz Hizmetleri Ltd. Şti.<br />
+                  için özel olarak geliştirilmiştir.
+                </p>
+              </div>
+
+              <div className="w-full h-px bg-white/5" />
+
+              <div className="flex flex-col gap-3 w-full">
+                <button
+                  onClick={() => window.api.openExternal('https://github.com/erenbektas/belge-numaralandirici')}
+                  className="flex items-center justify-center gap-3 w-full p-4 bg-white/5 hover:bg-white/10 border border-white/10 backdrop-blur-md rounded-2xl text-white/70 hover:text-white transition-all group shadow-lg"
+                >
+                  <Github size={20} className="group-hover:scale-110 transition-transform" />
+                  <span className="text-sm font-bold">Açık Kaynak Kodları</span>
+                </button>
+
+                <p className="text-[10px] text-white/20 font-medium tracking-widest mt-2 whitespace-pre-line text-center">
+                  Y. Eren Bektaş tarafından,{"\n"}Google Antigravity desteği ile.
+                </p>
+              </div>
 
               <button
-                onClick={() => setShowInfo(false)}
-                className="mt-6 w-full py-3 bg-white text-black rounded-xl font-black text-sm hover:bg-gray-200 transition-all active:scale-95"
+                onClick={() => setShowCredits(false)}
+                className="mt-4 px-10 py-3 bg-white/10 hover:bg-white/20 text-white text-xs font-black rounded-xl border border-white/10 backdrop-blur-md transition-all active:scale-95 shadow-xl"
               >
-                KAPAT
+                Kapat
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Warning Modal */}
+      {warningModal.type && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300"
+          onClick={() => setWarningModal({ type: null, files: [] })}
+        >
+          <div
+            className="bg-[#1A0A0A]/90 backdrop-blur-2xl border border-red-500/30 p-8 rounded-[2rem] max-w-lg w-full animate-in zoom-in-95 duration-300 relative overflow-hidden shadow-[0_0_60px_rgba(239,68,68,0.2)]"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Red glow background */}
+            <div className="absolute inset-0 bg-radial-at-t from-red-500/10 to-transparent pointer-events-none" />
+
+            <div className="flex flex-col gap-5 relative z-10">
+              {/* Icon and Title */}
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-red-600/20 flex items-center justify-center text-red-400 border border-red-500/30 flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                    <path d="M12 9v4" /><path d="M12 17h.01" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-red-400">
+                    {warningModal.type === 'unnumbered' ? 'Numarasız Dosyalar Tespit Edildi' : 'Desteklenmeyen Dosyalar'}
+                  </h3>
+                  <p className="text-white/50 text-sm">
+                    {warningModal.type === 'unnumbered'
+                      ? 'Aşağıdaki dosyaların isimlerinin numaralandırılmamış olduğu tespit edildi.'
+                      : 'Aşağıdaki dosya türleri desteklenmemektedir.'}
+                  </p>
+                </div>
+              </div>
+
+              {/* File List */}
+              <div className="bg-black/40 border border-red-500/20 rounded-xl p-3 max-h-24 overflow-y-auto custom-scrollbar">
+                <code className="text-xs text-red-300/80 font-mono whitespace-pre-wrap break-all">
+                  {warningModal.files.join('\n')}
+                </code>
+              </div>
+
+              <p className="text-white/40 text-sm">Nasıl ilerlemek istersiniz?</p>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={handleWarningCancel}
+                  className="flex-1 px-5 py-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 text-sm font-bold rounded-xl border border-red-500/30 transition-all active:scale-95"
+                >
+                  İşlemi İptal Et
+                </button>
+                <button
+                  onClick={handleWarningSkip}
+                  className="flex-1 px-5 py-3 bg-white/10 hover:bg-white/20 text-white text-sm font-bold rounded-xl border border-white/10 transition-all active:scale-95"
+                >
+                  {warningModal.type === 'unnumbered' ? 'Numarasızları Atla' : 'Desteklenmeyenleri Atla'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
