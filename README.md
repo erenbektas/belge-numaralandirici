@@ -61,6 +61,12 @@ npm run build:linux
 
 **Y. Eren Bektaş** — Aralık 2025
 
+> 🤖 Bu uygulama **Google Antigravity** yapay zeka asistanı ile birlikte geliştirilmiştir.
+
+## İndirme
+
+Windows için hazır kurulum dosyasını [Releases](../../releases) sayfasından indirebilirsiniz.
+
 ## Lisans
 
 Bu proje özel kullanım için geliştirilmiştir.
