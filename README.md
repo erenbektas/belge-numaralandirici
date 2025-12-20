@@ -14,7 +14,6 @@ Grup Sigorta Ekspertiz Hizmetleri Limited Şirketi için geliştirilmiş, belge 
 - 🔢 Otomatik belge numaralandırma ve damgalama
 - 🔄 Sayfa döndürme (90°, 180°, 270°)
 - 📥 Tek bir PDF olarak birleştirme ve indirme
-- 🎨 Modern, siyah temalı kullanıcı arayüzü
 
 ## Kurulum
 
