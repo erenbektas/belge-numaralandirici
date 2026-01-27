@@ -523,7 +523,7 @@ function App() {
                 </button>
 
                 <p className="text-[10px] text-white/20 font-medium tracking-widest mt-2 whitespace-pre-line text-center">
-                  Y. Eren Bektaş tarafından,{"\n"}Google Antigravity desteği ile.
+                  Y. Eren Bektaş tarafından.
                 </p>
               </div>
 
