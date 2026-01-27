@@ -20,7 +20,7 @@ export async function createStampedPDF(
         let addedPage;
 
         if (pageData.type === 'pdf') {
-            const sourcePdf = await PDFDocument.load(pageData.docBuffer.slice(0));
+            const sourcePdf = await PDFDocument.load(pageData.docBuffer.slice(0), { ignoreEncryption: true });
             const [copiedPage] = await pdfDoc.copyPages(sourcePdf, [pageData.pageNum - 1]);
             copiedPage.setRotation(degrees(pageData.rotation));
             addedPage = pdfDoc.addPage(copiedPage);
