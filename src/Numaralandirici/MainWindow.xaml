@@ -4,7 +4,7 @@
         Title="Numaralandırıcı" Height="600" Width="800"
         MinHeight="450" MinWidth="600"
         WindowStartupLocation="CenterScreen"
-        Icon="icon.ico"
+        Icon="icon.png"
         AllowDrop="True"
         Drop="Window_Drop"
         DragOver="Window_DragOver">
