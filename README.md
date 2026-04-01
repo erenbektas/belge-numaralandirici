@@ -1,71 +1,78 @@
-# Belge Düzenleyici
+# Numaralandırıcı
 
-Grup Sigorta Ekspertiz Hizmetleri Limited Şirketi için geliştirilmiş, belge tarama, numaralandırma ve PDF oluşturma uygulaması.
+![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet&logoColor=white)
+![C#](https://img.shields.io/badge/C%23-12-239120?logo=csharp&logoColor=white)
+![WPF](https://img.shields.io/badge/WPF-Desktop-0078D4?logo=windows&logoColor=white)
+![Platform](https://img.shields.io/badge/Platform-Windows%20x64-0078D6?logo=windows&logoColor=white)
+![PDFsharp](https://img.shields.io/badge/PDFsharp-6.1.1-E34F26?logo=adobeacrobatreader&logoColor=white)
 
-![Electron](https://img.shields.io/badge/Electron-33-47848F?logo=electron&logoColor=white)
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)
-![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-06B6D4?logo=tailwindcss&logoColor=white)
+Birden fazla dosya türünü PDF'e dönüştürüp numaralandıran ve tek bir PDF olarak birleştiren Windows masaüstü uygulaması.
 
-## Özellikler
+## Ne Yapar?
 
-- 📂 Sürükle-bırak ile dosya/klasör yükleme
-- 📄 PDF, Word, Excel, PowerPoint ve resim dosyalarını destekleme
-- 🔢 Otomatik belge numaralandırma ve damgalama
-- 🔄 Sayfa döndürme (90°, 180°, 270°)
-- 📥 Tek bir PDF olarak birleştirme ve indirme
+Numaralandırıcı; PDF, Word, Excel, görsel ve Outlook (.msg) dosyalarını alır, hepsini PDF'e dönüştürür, her belgenin ilk sayfasına sıra numarasını damgalar ve doğru sıralamayla tek bir PDF'de birleştirir.
 
-## Kurulum
-
-### Gereksinimler
-
-- [Node.js](https://nodejs.org/) (v18 veya üzeri)
-- [Microsoft Office](https://www.microsoft.com/office) (Word/Excel/PowerPoint dönüşümü için)
-
-### Yükleme
-
-```bash
-npm install
-```
-
-### Geliştirme
-
-```bash
-npm run dev
-```
-
-### Üretim Derlemesi
-
-```bash
-# Windows için
-npm run build:win
-
-# macOS için
-npm run build:mac
-
-# Linux için
-npm run build:linux
-```
+Sıralama, dosya adlarından otomatik olarak belirlenir. `1.pdf`, `2.1.docx`, `2.2-a.jpg` gibi adlandırmalar hiyerarşik olarak sıralanır (örn. `1` → `2.1` → `2.2.a`).
 
 ## Kullanım
 
-1. Belgeleri sürükle-bırak veya "Dosya Seç" ile yükleyin
-2. Dosyaların işlenmesini bekleyin (ilerleme çubuğu görünür)
-3. "Devam" butonuna tıklayın
-4. Sayfalara tıklayarak döndürün (isteğe bağlı)
-5. "Oluştur" butonuna tıklayın
-6. `HASAR BELGELERİ.pdf` dosyası otomatik indirilir
+1. **Dosya ekle** — sürükleyip bırakın veya dosya seçiciyi kullanın. Desteklenen formatlar: PDF, Word (.doc/.docx), Excel (.xls/.xlsx), görseller (JPG, PNG, BMP, GIF, TIFF), Outlook (.msg).
+2. **Önizleme** — tüm sayfalar birleştirme sırasına göre küçük resim olarak gösterilir. Sayfaları döndürebilir veya büyüterek inceleyebilirsiniz.
+3. **Numaralandır ve birleştir** — her belgenin ilk sayfasına sıra numarası damgalanır (gri daire, sol üst köşe) ve tüm dosyalar tek bir PDF'de birleştirilir.
+4. **Kaydet** — sonucu önizleyin veya diske kaydedin.
 
-## Geliştirici
+## Gereksinimler
 
-**Y. Eren Bektaş** — Aralık 2025
+- Windows 10/11 (x64)
+- .doc/.docx/.xls/.xlsx dönüşümü için Microsoft Office (Word ve Excel) yüklü olmalı
+- .NET 8 runtime (self-contained derlemede dahildir)
 
-> 🤖 Bu uygulama **Google Antigravity** ile birlikte geliştirilmiştir.
+## Derleme
 
-## İndirme
+```bash
+dotnet build src/Numaralandirici/Numaralandirici.csproj
+```
 
-Windows için hazır kurulum dosyasını [Releases](../../releases) sayfasından indirebilirsiniz.
+Tek bir self-contained çalıştırılabilir dosya olarak yayınlamak için:
 
-## Lisans
+```bash
+dotnet publish src/Numaralandirici/Numaralandirici.csproj -c Release
+```
 
-Bu proje özel kullanım için geliştirilmiştir.
+## Proje Yapısı
+
+```
+src/Numaralandirici/
+├── Models/
+│   ├── FileEntry.cs          # Listedeki bir dosyayı temsil eder
+│   ├── OrderPrefix.cs        # Dosya adından ayrıştırılan hiyerarşik sıra
+│   └── PagePreview.cs        # Küçük resim önizleme modeli
+├── ViewModels/
+│   ├── MainViewModel.cs      # Uygulama mantığı ve durum yönetimi
+│   └── RelayCommand.cs       # ICommand implementasyonu
+├── Services/
+│   ├── FileConverter.cs      # Dosyaları uygun dönüştürücülere yönlendirir
+│   ├── FileNameParser.cs     # Dosya adlarından sıra öneklerini ayrıştırır
+│   ├── PdfMerger.cs          # Birden fazla PDF'i birleştirir
+│   ├── PdfPageRotator.cs     # Sayfa döndürmesi uygular
+│   ├── PdfPageScaler.cs      # Sayfaları A4'e ölçekler
+│   ├── PdfStamper.cs         # İlk sayfalara sıra numarası damgalar
+│   ├── PdfThumbnailGenerator.cs
+│   └── Converters/
+│       ├── ExcelToPdfConverter.cs
+│       ├── ImageToPdfConverter.cs
+│       ├── MsgToPdfConverter.cs
+│       ├── PdfPassthroughConverter.cs
+│       └── WordToPdfConverter.cs
+├── Helpers/
+│   └── A4Constants.cs
+├── MainWindow.xaml           # Arayüz tasarımı
+└── App.xaml                  # Uygulama kaynakları ve stiller
+```
+
+## Kullanılan Kütüphaneler
+
+- [PDFsharp](https://github.com/empira/PDFsharp) — PDF oluşturma, düzenleme ve damgalama
+- [PDFtoImage](https://github.com/sungaila/PDFtoImage) — PDF küçük resim üretimi
+- [MsgReader](https://github.com/Sicos1977/MSGReader) — Outlook .msg dosya okuma
+- Microsoft Office Interop — Word ve Excel'den PDF'e dönüşüm

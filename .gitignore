@@ -1,12 +1,41 @@
-node_modules
-dist
-out
-release
+## .NET / C#
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+## NuGet
+**/packages/
+*.nupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+## Visual Studio
+.vs/
+*.rsuser
+*.sln.docstates
+
+## Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Ll]og/
+[Ll]ogs/
+
+## OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 .DS_Store
-.eslintcache
-*.log*
-*.local
-.idea
-*.swp
-*.swo
-package-lock.json
+
+## Claude
+.claude/
