@@ -52,6 +52,11 @@ public partial class MainWindow : Window
         }
     }
 
+    private void BtnInfo_Click(object sender, RoutedEventArgs e)
+    {
+        new InfoWindow { Owner = this }.ShowDialog();
+    }
+
     private void Window_DragOver(object sender, DragEventArgs e)
     {
         if (e.Data.GetDataPresent(DataFormats.FileDrop))
