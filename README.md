@@ -16,10 +16,24 @@ Sıralama, dosya adlarından otomatik olarak belirlenir. `1.pdf`, `2.1.docx`, `2
 
 ## Kullanım
 
-1. **Dosya ekle** — sürükleyip bırakın veya dosya seçiciyi kullanın. Desteklenen formatlar: PDF, Word (.doc/.docx), Excel (.xls/.xlsx), görseller (JPG, PNG, BMP, GIF, TIFF), Outlook (.msg).
+1. **Dosya ekle** — sürükleyip bırakın veya dosya seçiciyi kullanın. Desteklenen formatlar: PDF, Word (.doc/.docx), Excel (.xls/.xlsx), görseller (JPG, JPEG, JFIF, PNG, BMP, GIF, TIFF), Outlook (.msg).
 2. **Önizleme** — tüm sayfalar birleştirme sırasına göre küçük resim olarak gösterilir. Sayfaları döndürebilir veya büyüterek inceleyebilirsiniz.
-3. **Numaralandır ve birleştir** — her belgenin ilk sayfasına sıra numarası damgalanır (gri daire, sol üst köşe) ve tüm dosyalar tek bir PDF'de birleştirilir.
-4. **Kaydet** — sonucu önizleyin veya diske kaydedin.
+3. **Numaralandır** — her belgenin ilk sayfasına sıra numarası damgalanır (gri daire, sol üst köşe) ve tüm dosyalar tek bir PDF'de birleştirilir.
+4. **Sıkıştır (isteğe bağlı)** — Ghostscript ve QPDF ile PDF dosyasını sıkıştırın. Düşük, yüksek veya özel sıkıştırma seçenekleri mevcuttur.
+5. **Kaydet** — sonucu önizleyin veya diske kaydedin.
+
+## Özellikler
+
+- Koyu tema arayüz
+- Dosya adlarından otomatik hiyerarşik sıralama
+- 3 aşamalı iş akışı: dosya listesi → önizleme → özet
+- Sayfa döndürme ve büyütme desteği
+- Aynı sıra numarasına sahip dosyalarda yalnızca ilk dosyaya damga
+- PDF sıkıştırma (Ghostscript + QPDF, uygulama ile birlikte gelir)
+- Dosya boyutu uyarısı (11 MB üzeri)
+- Tüm sayfalar A4'e ölçeklenir (kırpma yok)
+- Office Interop sürüm bağımsız (tüm Office sürümleriyle çalışır)
+- Bağımsız .exe olarak dağıtılabilir
 
 ## Gereksinimler
 
@@ -53,6 +67,7 @@ src/Numaralandirici/
 ├── Services/
 │   ├── FileConverter.cs      # Dosyaları uygun dönüştürücülere yönlendirir
 │   ├── FileNameParser.cs     # Dosya adlarından sıra öneklerini ayrıştırır
+│   ├── PdfCompressor.cs      # Ghostscript + QPDF ile PDF sıkıştırma
 │   ├── PdfMerger.cs          # Birden fazla PDF'i birleştirir
 │   ├── PdfPageRotator.cs     # Sayfa döndürmesi uygular
 │   ├── PdfPageScaler.cs      # Sayfaları A4'e ölçekler
@@ -66,6 +81,9 @@ src/Numaralandirici/
 │       └── WordToPdfConverter.cs
 ├── Helpers/
 │   └── A4Constants.cs
+├── tools/
+│   ├── gs/                   # Ghostscript (gswin64c.exe + gsdll64.dll)
+│   └── qpdf/                 # QPDF (qpdf.exe + qpdf30.dll)
 ├── MainWindow.xaml           # Arayüz tasarımı
 └── App.xaml                  # Uygulama kaynakları ve stiller
 ```
@@ -75,4 +93,6 @@ src/Numaralandirici/
 - [PDFsharp](https://github.com/empira/PDFsharp) — PDF oluşturma, düzenleme ve damgalama
 - [PDFtoImage](https://github.com/sungaila/PDFtoImage) — PDF küçük resim üretimi
 - [MsgReader](https://github.com/Sicos1977/MSGReader) — Outlook .msg dosya okuma
-- Microsoft Office Interop — Word ve Excel'den PDF'e dönüşüm
+- [Ghostscript](https://www.ghostscript.com/) — PDF sıkıştırma ve görsel optimizasyonu
+- [QPDF](https://github.com/qpdf/qpdf) — PDF linearizasyon ve optimizasyon
+- Microsoft Office COM Interop — Word ve Excel'den PDF'e dönüşüm

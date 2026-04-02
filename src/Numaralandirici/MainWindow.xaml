@@ -4,6 +4,7 @@
         Title="Numaralandırıcı" Height="600" Width="800"
         MinHeight="450" MinWidth="600"
         WindowStartupLocation="CenterScreen"
+        Background="{StaticResource WindowBg}"
         Icon="icon.png"
         AllowDrop="True"
         Drop="Window_Drop"
@@ -31,7 +32,7 @@
                        Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,0,10"/>
 
             <Border Grid.Row="1" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="4"
-                    Background="{StaticResource CardBg}" Padding="1">
+                    Background="{StaticResource CardBg}" ClipToBounds="True">
                 <Grid>
                     <StackPanel x:Name="DropZone" VerticalAlignment="Center" HorizontalAlignment="Center">
                         <TextBlock Text="Dosyaları buraya sürükleyin" FontSize="16"
@@ -40,9 +41,22 @@
                                    Foreground="#AAAAAA" HorizontalAlignment="Center" Margin="0,5,0,0"/>
                     </StackPanel>
 
-                    <ListView x:Name="FileList" ItemsSource="{Binding Files}" Background="Transparent">
+                    <ListView x:Name="FileList" ItemsSource="{Binding Files}" Background="Transparent"
+                              SizeChanged="FileList_SizeChanged" Padding="0" Margin="0"
+                              BorderThickness="0">
                         <ListView.View>
                             <GridView>
+                                <GridViewColumn Header="" Width="36">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Content="X" Width="22" Height="22"
+                                                    Style="{StaticResource RedButton}"
+                                                    Command="{Binding DataContext.RemoveFileCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}"
+                                                    FontSize="11" ToolTip="Kaldır"/>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
                                 <GridViewColumn Header="Sıra" Width="70"
                                                 DisplayMemberBinding="{Binding Order.DisplayText}"/>
                                 <GridViewColumn Header="Dosya Adı" Width="300"
@@ -51,17 +65,6 @@
                                                 DisplayMemberBinding="{Binding FileType}"/>
                                 <GridViewColumn Header="Durum" Width="120"
                                                 DisplayMemberBinding="{Binding Status}"/>
-                                <GridViewColumn Header="" Width="40">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <Button Content="X" Width="22" Height="22" Padding="0"
-                                                    Command="{Binding DataContext.RemoveFileCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                    CommandParameter="{Binding}"
-                                                    Foreground="#CC0000" FontSize="11" FontWeight="Bold"
-                                                    ToolTip="Kaldır"/>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
                             </GridView>
                         </ListView.View>
                     </ListView>
@@ -79,13 +82,13 @@
             <TextBlock Grid.Row="0" Text="Sayfa önizlemesi - birleştirilecek sırayla görüntüleniyorlar."
                        Foreground="{StaticResource TextSecondary}" FontSize="12" Margin="0,0,0,10"/>
 
-            <Border Grid.Row="1" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="4"
+            <Border Grid.Row="1" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="8"
                     Background="{StaticResource CardBg}" Padding="1">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <ItemsControl ItemsSource="{Binding Previews}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <WrapPanel/>
+                                <WrapPanel HorizontalAlignment="Center"/>
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
@@ -103,22 +106,27 @@
 
                                             <!-- Rotate button (top-left) - always visible -->
                                             <Button Command="{Binding RotateCommand}" CommandParameter="{Binding}"
-                                                    Width="24" Height="24" Padding="0"
-                                                    HorizontalAlignment="Left" VerticalAlignment="Top" Margin="2"
-                                                    Background="#88FFFFFF" ToolTip="Döndür">
-                                                <TextBlock Text="&#x21BB;" FontSize="14" FontWeight="Bold"/>
+                                                    Width="26" Height="26"
+                                                    Style="{StaticResource CircleButton}"
+                                                    HorizontalAlignment="Left" VerticalAlignment="Top" Margin="3"
+                                                    ToolTip="Döndür">
+                                                <TextBlock Text="&#x21BB;" FontSize="14" FontWeight="Bold"
+                                                           Foreground="#DDDDDD"/>
                                             </Button>
 
                                             <!-- Magnify button (top-right) - always visible -->
                                             <Button Command="{Binding MagnifyCommand}" CommandParameter="{Binding}"
-                                                    Width="24" Height="24" Padding="0"
-                                                    HorizontalAlignment="Right" VerticalAlignment="Top" Margin="2"
-                                                    Background="#88FFFFFF" ToolTip="Büyüt">
-                                                <TextBlock Text="&#x1F50D;" FontSize="12"/>
+                                                    Width="26" Height="26"
+                                                    Style="{StaticResource CircleButton}"
+                                                    HorizontalAlignment="Right" VerticalAlignment="Top" Margin="3"
+                                                    ToolTip="Büyüt">
+                                                <TextBlock Text="&#x1F50D;" FontSize="12"
+                                                           Foreground="#DDDDDD"/>
                                             </Button>
                                         </Grid>
                                         <TextBlock Text="{Binding Label}" HorizontalAlignment="Center"
-                                                   FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,0"/>
+                                                   FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,0"
+                                                   MaxWidth="130" TextTrimming="CharacterEllipsis" ToolTip="{Binding Label}"/>
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
@@ -130,8 +138,8 @@
 
         <!-- PAGE 3: Summary -->
         <Grid Grid.Row="1" x:Name="SummaryPage" Visibility="Collapsed">
-            <Border BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="4"
-                    Background="{StaticResource CardBg}" Padding="30"
+            <Border BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="10"
+                    Background="{StaticResource CardBg}" Padding="35"
                     VerticalAlignment="Center" HorizontalAlignment="Center"
                     MinWidth="400">
                 <StackPanel HorizontalAlignment="Center">
@@ -156,7 +164,46 @@
                                Margin="0,0,0,12" Visibility="Collapsed"/>
 
                     <!-- Separator -->
-                    <Border BorderBrush="{StaticResource BorderColor}" BorderThickness="0,1,0,0" Margin="0,10,0,20"/>
+                    <Border BorderBrush="{StaticResource BorderColor}" BorderThickness="0,1,0,0" Margin="0,10,0,15"/>
+
+                    <!-- Compression -->
+                    <TextBlock Text="Sıkıştırma" FontSize="14" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" Margin="0,0,0,10"/>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,8">
+                        <Button x:Name="BtnPresetLow" Content="Düşük Sıkıştırma"
+                                Command="{Binding SelectPresetCommand}" CommandParameter="Low"
+                                Padding="12,6" Margin="0,0,6,0" FontSize="12"/>
+                        <Button x:Name="BtnPresetHigh" Content="Yüksek Sıkıştırma"
+                                Command="{Binding SelectPresetCommand}" CommandParameter="High"
+                                Padding="12,6" Margin="0,0,6,0" FontSize="12"/>
+                        <Button x:Name="BtnPresetCustom" Content="Özel Sıkıştırma"
+                                Command="{Binding SelectPresetCommand}" CommandParameter="Custom"
+                                Padding="12,6" FontSize="12"/>
+                    </StackPanel>
+
+                    <!-- Custom sliders (visible when Özel is selected) -->
+                    <StackPanel x:Name="CustomCompressionPanel" Visibility="Collapsed" Margin="0,5,0,5">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,4">
+                            <TextBlock Text="DPI: " FontSize="12" Foreground="{StaticResource TextSecondary}" Width="50" VerticalAlignment="Center"/>
+                            <Slider x:Name="SliderDpi" Width="180" Minimum="50" Maximum="300"
+                                    Value="{Binding CustomDpi}" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding CustomDpi}" FontSize="12" Width="35" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="Kalite: " FontSize="12" Foreground="{StaticResource TextSecondary}" Width="50" VerticalAlignment="Center"/>
+                            <Slider x:Name="SliderQuality" Width="180" Minimum="10" Maximum="100"
+                                    Value="{Binding CustomQuality}" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding CustomQuality}" FontSize="12" Width="35" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <Button Content="Sıkıştır" Command="{Binding CompressCommand}"
+                            Style="{StaticResource AccentButton}" HorizontalAlignment="Center" Margin="0,8,0,0"
+                            Padding="20,6"/>
+
+                    <!-- Separator -->
+                    <Border BorderBrush="{StaticResource BorderColor}" BorderThickness="0,1,0,0" Margin="0,15,0,15"/>
 
                     <!-- Buttons -->
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
@@ -172,8 +219,9 @@
         <!-- Buttons -->
         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,5">
             <!-- Info button (left-aligned) -->
-            <Button Content="&#x2139;" ToolTip="Hakkında" Click="BtnInfo_Click"
-                    Width="32" Height="32" Padding="0" FontSize="16" VerticalAlignment="Center"/>
+            <Button Content="ⓘ" ToolTip="Hakkında" Click="BtnInfo_Click"
+                    Width="30" Height="30" Padding="0" FontSize="18" VerticalAlignment="Center"
+                    Background="Transparent" Foreground="{StaticResource TextSecondary}"/>
         </StackPanel>
         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,5" HorizontalAlignment="Right">
             <!-- File list page buttons -->
@@ -185,7 +233,7 @@
                     Style="{StaticResource AccentButton}"/>
 
             <!-- Preview page buttons -->
-            <Button x:Name="BtnBackPreview" Content="Son" Command="{Binding BackCommand}"
+            <Button x:Name="BtnBackPreview" Content="Geri" Command="{Binding BackCommand}"
                     Padding="15,8" Margin="0,0,8,0" Visibility="Collapsed"/>
             <Button x:Name="BtnNumarandir" Content="Numaralandır" Command="{Binding NumaralandirCommand}"
                     Style="{StaticResource AccentButton}" Visibility="Collapsed"/>

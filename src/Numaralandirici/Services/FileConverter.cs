@@ -7,7 +7,7 @@ public static class FileConverter
 {
     private static readonly HashSet<string> SupportedExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".pdf", ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".tif",
+        ".pdf", ".jpg", ".jpeg", ".jfif", ".png", ".bmp", ".gif", ".tiff", ".tif",
         ".doc", ".docx", ".xls", ".xlsx", ".msg"
     };
 
@@ -23,7 +23,7 @@ public static class FileConverter
         return ext switch
         {
             ".pdf" => PdfPassthroughConverter.Normalize(filePath),
-            ".jpg" or ".jpeg" or ".png" or ".bmp" or ".gif" or ".tiff" or ".tif"
+            ".jpg" or ".jpeg" or ".jfif" or ".png" or ".bmp" or ".gif" or ".tiff" or ".tif"
                 => ImageToPdfConverter.Convert(filePath),
             ".doc" or ".docx" => WordToPdfConverter.Convert(filePath),
             ".xls" or ".xlsx" => ExcelToPdfConverter.Convert(filePath),

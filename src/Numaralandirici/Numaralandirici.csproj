@@ -21,11 +21,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="tools\gs\*" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="tools\qpdf\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="PDFsharp" Version="6.1.1" />
     <PackageReference Include="MsgReader" Version="5.5.3" />
     <PackageReference Include="PDFtoImage" Version="4.1.1" />
-    <PackageReference Include="Microsoft.Office.Interop.Word" Version="15.0.4797.1004" />
-    <PackageReference Include="Microsoft.Office.Interop.Excel" Version="15.0.4795.1001" />
   </ItemGroup>
 
 </Project>

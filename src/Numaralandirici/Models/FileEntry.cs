@@ -25,7 +25,7 @@ public class FileEntry : INotifyPropertyChanged, IComparable<FileEntry>
         ".doc" or ".docx" => "Word",
         ".xls" or ".xlsx" => "Excel",
         ".msg" => "Outlook",
-        ".jpg" or ".jpeg" or ".png" or ".bmp" or ".gif" or ".tiff" or ".tif" => "Resim",
+        ".jpg" or ".jpeg" or ".jfif" or ".png" or ".bmp" or ".gif" or ".tiff" or ".tif" => "Resim",
         _ => "Bilinmeyen"
     };
 

@@ -1,6 +1,5 @@
 using System.IO;
 using System.Runtime.InteropServices;
-using Excel = Microsoft.Office.Interop.Excel;
 
 namespace Numaralandirici.Services.Converters;
 
@@ -9,28 +8,33 @@ public static class ExcelToPdfConverter
     public static string Convert(string excelPath)
     {
         var tempPath = Path.Combine(Path.GetTempPath(), $"numaralandirici_{Guid.NewGuid()}.pdf");
-        Excel.Application? excelApp = null;
-        Excel.Workbook? workbook = null;
+        dynamic? excelApp = null;
+        dynamic? workbook = null;
 
         try
         {
-            excelApp = new Excel.Application { Visible = false, DisplayAlerts = false };
+            var excelType = Type.GetTypeFromProgID("Excel.Application")
+                ?? throw new Exception("Microsoft Excel yüklü değil.");
+
+            excelApp = Activator.CreateInstance(excelType)!;
+            excelApp.Visible = false;
+            excelApp.DisplayAlerts = false;
+
             workbook = excelApp.Workbooks.Open(
                 Path.GetFullPath(excelPath),
                 ReadOnly: true);
 
             // Set all sheets to A4
-            foreach (Excel.Worksheet sheet in workbook.Worksheets)
+            foreach (dynamic sheet in workbook.Worksheets)
             {
-                sheet.PageSetup.PaperSize = Excel.XlPaperSize.xlPaperA4;
+                sheet.PageSetup.PaperSize = 9; // xlPaperA4
                 sheet.PageSetup.FitToPagesWide = 1;
                 sheet.PageSetup.FitToPagesTall = false;
                 Marshal.ReleaseComObject(sheet);
             }
 
-            workbook.ExportAsFixedFormat(
-                Excel.XlFixedFormatType.xlTypePDF,
-                tempPath);
+            // xlTypePDF = 0
+            workbook.ExportAsFixedFormat(0, tempPath);
         }
         finally
         {

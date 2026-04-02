@@ -15,6 +15,7 @@ using PdfSharp.Pdf.IO;
 namespace Numaralandirici.ViewModels;
 
 public enum AppPage { FileList, Preview, Summary }
+public enum CompressionPreset { None, Low, High, Custom }
 
 public class MainViewModel : INotifyPropertyChanged
 {
@@ -24,9 +25,14 @@ public class MainViewModel : INotifyPropertyChanged
     private AppPage _currentPage = AppPage.FileList;
     private List<string> _tempPdfFiles = new();
     private string _mergedTempPath = "";
+    private string _uncompressedTempPath = "";
     private string _summaryFileSize = "";
     private bool _isFileSizeLarge;
     private int _summaryPageCount;
+    private CompressionPreset _selectedPreset = CompressionPreset.None;
+    private int _customDpi = 144;
+    private int _customQuality = 75;
+    private bool _isCompressed;
 
     public ObservableCollection<FileEntry> Files { get; } = new();
     public ObservableCollection<PagePreview> Previews { get; } = new();
@@ -73,6 +79,32 @@ public class MainViewModel : INotifyPropertyChanged
         set { _summaryPageCount = value; OnPropertyChanged(); }
     }
 
+    public CompressionPreset SelectedPreset
+    {
+        get => _selectedPreset;
+        set { _selectedPreset = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsCustomPreset)); }
+    }
+
+    public bool IsCustomPreset => SelectedPreset == CompressionPreset.Custom;
+
+    public int CustomDpi
+    {
+        get => _customDpi;
+        set { _customDpi = value; OnPropertyChanged(); }
+    }
+
+    public int CustomQuality
+    {
+        get => _customQuality;
+        set { _customQuality = value; OnPropertyChanged(); }
+    }
+
+    public bool IsCompressed
+    {
+        get => _isCompressed;
+        set { _isCompressed = value; OnPropertyChanged(); }
+    }
+
     public ICommand AddFilesCommand { get; }
     public ICommand ContinueCommand { get; }
     public ICommand NumaralandirCommand { get; }
@@ -81,6 +113,8 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand BackCommand { get; }
     public ICommand ClearCommand { get; }
     public ICommand RemoveFileCommand { get; }
+    public ICommand SelectPresetCommand { get; }
+    public ICommand CompressCommand { get; }
 
     public MainViewModel()
     {
@@ -92,6 +126,84 @@ public class MainViewModel : INotifyPropertyChanged
         BackCommand = new RelayCommand(_ => GoBack(), _ => !IsProcessing);
         ClearCommand = new RelayCommand(_ => Clear(), _ => !IsProcessing && Files.Count > 0);
         RemoveFileCommand = new RelayCommand(param => RemoveFile(param), _ => !IsProcessing);
+        SelectPresetCommand = new RelayCommand(param => SelectPreset(param), _ => !IsProcessing);
+        CompressCommand = new RelayCommand(async _ => await CompressAsync(), _ => !IsProcessing && SelectedPreset != CompressionPreset.None);
+    }
+
+    private void SelectPreset(object? param)
+    {
+        if (param is string preset)
+        {
+            SelectedPreset = preset switch
+            {
+                "Low" => CompressionPreset.Low,
+                "High" => CompressionPreset.High,
+                "Custom" => CompressionPreset.Custom,
+                _ => CompressionPreset.None
+            };
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
+
+    private async Task CompressAsync()
+    {
+        int dpi, quality;
+        switch (SelectedPreset)
+        {
+            case CompressionPreset.Low:
+                dpi = 144; quality = 75; break;
+            case CompressionPreset.High:
+                dpi = 90; quality = 55; break;
+            case CompressionPreset.Custom:
+                dpi = CustomDpi; quality = CustomQuality; break;
+            default: return;
+        }
+
+        IsProcessing = true;
+        try
+        {
+            var progress = new Progress<string>(msg =>
+                Application.Current.Dispatcher.Invoke(() => StatusText = msg));
+
+            // Keep the uncompressed version for potential re-compression
+            if (string.IsNullOrEmpty(_uncompressedTempPath))
+            {
+                _uncompressedTempPath = _mergedTempPath;
+            }
+            else
+            {
+                // Delete previous compressed version, recompress from original
+                if (_mergedTempPath != _uncompressedTempPath)
+                {
+                    try { File.Delete(_mergedTempPath); } catch { }
+                }
+                _mergedTempPath = _uncompressedTempPath;
+            }
+
+            string compressedPath = await PdfCompressor.CompressAsync(_mergedTempPath, dpi, quality, progress);
+            _mergedTempPath = compressedPath;
+
+            UpdateFileSizeInfo();
+            IsCompressed = true;
+
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+                StatusText = "Sıkıştırma tamamlandı.");
+        }
+        catch (Exception ex)
+        {
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+                StatusText = $"Sıkıştırma hatası: {ex.Message}");
+
+            MessageBox.Show(
+                $"Sıkıştırma sırasında hata oluştu:\n{ex.Message}",
+                "Hata",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
     }
 
     public void AddDroppedFiles(string[] paths)
@@ -125,7 +237,7 @@ public class MainViewModel : INotifyPropertyChanged
         var dialog = new OpenFileDialog
         {
             Multiselect = true,
-            Filter = "Desteklenen Dosyalar|*.pdf;*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.tiff;*.tif;*.doc;*.docx;*.xls;*.xlsx;*.msg|Tüm Dosyalar|*.*",
+            Filter = "Desteklenen Dosyalar|*.pdf;*.jpg;*.jpeg;*.jfif;*.png;*.bmp;*.gif;*.tiff;*.tif;*.doc;*.docx;*.xls;*.xlsx;*.msg|Tüm Dosyalar|*.*",
             Title = "Dosya Seçin"
         };
 
@@ -283,7 +395,7 @@ public class MainViewModel : INotifyPropertyChanged
             for (int i = 0; i < _tempPdfFiles.Count; i++)
             {
                 var thumbnails = await PdfThumbnailGenerator.GenerateThumbnailsAsync(_tempPdfFiles[i]);
-                string fileLabel = filesList[i].Order.DisplayText;
+                string fileLabel = filesList[i].FileName;
 
                 for (int j = 0; j < thumbnails.Count; j++)
                 {
@@ -407,10 +519,6 @@ public class MainViewModel : INotifyPropertyChanged
             await Task.Run(() => PdfMerger.Merge(_tempPdfFiles, _mergedTempPath));
 
             // Calculate summary info
-            var fileInfo = new FileInfo(_mergedTempPath);
-            long fileSizeBytes = fileInfo.Length;
-            double fileSizeMB = fileSizeBytes / (1024.0 * 1024.0);
-
             int pageCount = 0;
             await Task.Run(() =>
             {
@@ -421,13 +529,9 @@ public class MainViewModel : INotifyPropertyChanged
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 SummaryPageCount = pageCount;
-                IsFileSizeLarge = fileSizeMB > 11;
-
-                if (fileSizeMB >= 1)
-                    SummaryFileSize = $"{fileSizeMB:F1} MB";
-                else
-                    SummaryFileSize = $"{fileSizeBytes / 1024.0:F0} KB";
-
+                UpdateFileSizeInfo();
+                SelectedPreset = CompressionPreset.None;
+                IsCompressed = false;
                 StatusText = "Numaralandırma tamamlandı.";
                 Progress = 100;
                 CurrentPage = AppPage.Summary;
@@ -509,11 +613,33 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    private void UpdateFileSizeInfo()
+    {
+        if (string.IsNullOrEmpty(_mergedTempPath) || !File.Exists(_mergedTempPath))
+            return;
+
+        var fileInfo = new FileInfo(_mergedTempPath);
+        long fileSizeBytes = fileInfo.Length;
+        double fileSizeMB = fileSizeBytes / (1024.0 * 1024.0);
+
+        IsFileSizeLarge = fileSizeMB > 11;
+        SummaryFileSize = fileSizeMB >= 1
+            ? $"{fileSizeMB:F1} MB"
+            : $"{fileSizeBytes / 1024.0:F0} KB";
+    }
+
     private void CleanupAll()
     {
         CleanupTempFiles();
         try { if (File.Exists(_mergedTempPath)) File.Delete(_mergedTempPath); } catch { }
+        if (!string.IsNullOrEmpty(_uncompressedTempPath) && _uncompressedTempPath != _mergedTempPath)
+        {
+            try { File.Delete(_uncompressedTempPath); } catch { }
+        }
         _mergedTempPath = "";
+        _uncompressedTempPath = "";
+        IsCompressed = false;
+        SelectedPreset = CompressionPreset.None;
         Previews.Clear();
         CurrentPage = AppPage.FileList;
         Progress = 0;

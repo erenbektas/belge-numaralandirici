@@ -1,6 +1,5 @@
 using System.IO;
 using System.Runtime.InteropServices;
-using Word = Microsoft.Office.Interop.Word;
 
 namespace Numaralandirici.Services.Converters;
 
@@ -9,37 +8,40 @@ public static class WordToPdfConverter
     public static string Convert(string wordPath)
     {
         var tempPath = Path.Combine(Path.GetTempPath(), $"numaralandirici_{Guid.NewGuid()}.pdf");
-        Word.Application? wordApp = null;
-        Word.Document? doc = null;
+        dynamic? wordApp = null;
+        dynamic? doc = null;
 
         try
         {
-            wordApp = new Word.Application { Visible = false, DisplayAlerts = Word.WdAlertLevel.wdAlertsNone };
+            var wordType = Type.GetTypeFromProgID("Word.Application")
+                ?? throw new Exception("Microsoft Word yüklü değil.");
+
+            wordApp = Activator.CreateInstance(wordType)!;
+            wordApp.Visible = false;
+            wordApp.DisplayAlerts = 0; // wdAlertsNone
+
             doc = wordApp.Documents.Open(
                 Path.GetFullPath(wordPath),
                 ReadOnly: true,
                 Visible: false);
 
-            doc.ExportAsFixedFormat(
-                tempPath,
-                Word.WdExportFormat.wdExportFormatPDF,
-                OptimizeFor: Word.WdExportOptimizeFor.wdExportOptimizeForPrint);
+            // wdExportFormatPDF = 17, wdExportOptimizeForPrint = 0
+            doc.ExportAsFixedFormat(tempPath, 17, OptimizeFor: 0);
         }
         finally
         {
             if (doc != null)
             {
-                doc.Close(Word.WdSaveOptions.wdDoNotSaveChanges);
+                doc.Close(0); // wdDoNotSaveChanges
                 Marshal.ReleaseComObject(doc);
             }
             if (wordApp != null)
             {
-                wordApp.Quit(Word.WdSaveOptions.wdDoNotSaveChanges);
+                wordApp.Quit(0); // wdDoNotSaveChanges
                 Marshal.ReleaseComObject(wordApp);
             }
         }
 
-        // Normalize to A4
         var normalized = PdfPassthroughConverter.Normalize(tempPath);
         if (normalized != tempPath)
         {

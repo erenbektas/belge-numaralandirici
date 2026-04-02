@@ -1,6 +1,8 @@
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
 using Numaralandirici.ViewModels;
 
 namespace Numaralandirici;
@@ -9,12 +11,25 @@ public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
 
+    [DllImport("dwmapi.dll", PreserveSig = true)]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);
+
     public MainWindow()
     {
         InitializeComponent();
         _viewModel = new MainViewModel();
         DataContext = _viewModel;
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
+
+        SourceInitialized += (_, _) =>
+        {
+            var hwnd = new WindowInteropHelper(this).Handle;
+            int darkMode = 1;
+            // Attribute 20: DWMWA_USE_IMMERSIVE_DARK_MODE (Windows 10 20H1+, Windows 11)
+            DwmSetWindowAttribute(hwnd, 20, ref darkMode, sizeof(int));
+            // Attribute 19: undocumented predecessor (older Windows 10 builds)
+            DwmSetWindowAttribute(hwnd, 19, ref darkMode, sizeof(int));
+        };
     }
 
     private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -50,11 +65,47 @@ public partial class MainWindow : Window
                 : (System.Windows.Media.Brush)FindResource("TextPrimary");
             TxtFileSizeWarning.Visibility = large ? Visibility.Visible : Visibility.Collapsed;
         }
+        else if (e.PropertyName == nameof(MainViewModel.SelectedPreset))
+        {
+            var preset = _viewModel.SelectedPreset;
+            CustomCompressionPanel.Visibility = preset == CompressionPreset.Custom
+                ? Visibility.Visible : Visibility.Collapsed;
+
+            // Highlight selected preset button
+            var accentBrush = (System.Windows.Media.Brush)FindResource("AccentColor");
+            var defaultBrush = (System.Windows.Media.Brush)FindResource("ButtonBg");
+            BtnPresetLow.Background = preset == CompressionPreset.Low ? accentBrush : defaultBrush;
+            BtnPresetHigh.Background = preset == CompressionPreset.High ? accentBrush : defaultBrush;
+            BtnPresetCustom.Background = preset == CompressionPreset.Custom ? accentBrush : defaultBrush;
+
+            var whiteBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.White);
+            var textBrush = (System.Windows.Media.Brush)FindResource("TextPrimary");
+            BtnPresetLow.Foreground = preset == CompressionPreset.Low ? whiteBrush : textBrush;
+            BtnPresetHigh.Foreground = preset == CompressionPreset.High ? whiteBrush : textBrush;
+            BtnPresetCustom.Foreground = preset == CompressionPreset.Custom ? whiteBrush : textBrush;
+        }
     }
 
     private void BtnInfo_Click(object sender, RoutedEventArgs e)
     {
         new InfoWindow { Owner = this }.ShowDialog();
+    }
+
+    private void FileList_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (FileList.View is System.Windows.Controls.GridView gridView && gridView.Columns.Count >= 5)
+        {
+            double otherColumnsWidth = 0;
+            for (int i = 0; i < gridView.Columns.Count; i++)
+            {
+                if (i != 2) // Skip "Dosya Adı" column (index 2: remove, sıra, dosya adı, tür, durum)
+                    otherColumnsWidth += gridView.Columns[i].ActualWidth;
+            }
+
+            double available = FileList.ActualWidth - otherColumnsWidth - 30; // 30 for scrollbar + padding
+            if (available > 100)
+                gridView.Columns[2].Width = available;
+        }
     }
 
     private void Window_DragOver(object sender, DragEventArgs e)
