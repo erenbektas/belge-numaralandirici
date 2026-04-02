@@ -5,6 +5,8 @@
 ![WPF](https://img.shields.io/badge/WPF-Desktop-0078D4?logo=windows&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20x64-0078D6?logo=windows&logoColor=white)
 ![PDFsharp](https://img.shields.io/badge/PDFsharp-6.1.1-E34F26?logo=adobeacrobatreader&logoColor=white)
+![Ghostscript](https://img.shields.io/badge/Ghostscript-10.06-555555?logo=ghostery&logoColor=white)
+![QPDF](https://img.shields.io/badge/QPDF-12.3.2-007ACC?logoColor=white)
 
 Birden fazla dosya türünü PDF'e dönüştürüp numaralandıran ve tek bir PDF olarak birleştiren Windows masaüstü uygulaması.
 
