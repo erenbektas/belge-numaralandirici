@@ -18,6 +18,8 @@
         <SolidColorBrush x:Key="ButtonHover" Color="#4A4A4A"/>
         <SolidColorBrush x:Key="HeaderBg" Color="#333333"/>
         <SolidColorBrush x:Key="TrackBg" Color="#333333"/>
+        <SolidColorBrush x:Key="WarningText" Color="#CC0000"/>
+        <SolidColorBrush x:Key="MagnifyOverlay" Color="#F0000000"/>
 
         <!-- Window -->
         <Style TargetType="Window">

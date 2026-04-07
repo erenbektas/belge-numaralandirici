@@ -1,4 +1,3 @@
-using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using MsgReader.Outlook;
@@ -13,7 +12,7 @@ public static partial class MsgToPdfConverter
 {
     public static string Convert(string msgPath)
     {
-        var tempPath = Path.Combine(Path.GetTempPath(), $"numaralandirici_{Guid.NewGuid()}.pdf");
+        var tempPath = TempFile.NewPdf();
 
         using var msg = new Storage.Message(msgPath);
 
@@ -54,39 +53,45 @@ public static partial class MsgToPdfConverter
         PdfPage page = AddA4Page(document);
         XGraphics gfx = XGraphics.FromPdfPage(page);
 
-        // Draw header
-        y = DrawLine(gfx, boldFont, $"Kimden: {from}", margin, y, maxWidth, lineHeight);
-        y = DrawLine(gfx, boldFont, $"Kime: {to}", margin, y, maxWidth, lineHeight);
-        y = DrawLine(gfx, boldFont, $"Tarih: {date}", margin, y, maxWidth, lineHeight);
-        y = DrawLine(gfx, headerFont, $"Konu: {subject}", margin, y, maxWidth, lineHeight + 4);
-        y += 10;
-
-        // Draw separator line
-        gfx.DrawLine(XPens.Gray, margin, y, A4Constants.WidthPoints - margin, y);
-        y += 15;
-
-        // Draw body text with word wrap and pagination
-        var lines = body.Split('\n');
-        foreach (var rawLine in lines)
+        try
         {
-            var line = rawLine.TrimEnd('\r');
-            var wrappedLines = WrapText(gfx, font, line, maxWidth);
+            // Draw header
+            y = DrawLine(gfx, boldFont, $"Kimden: {from}", margin, y, maxWidth, lineHeight);
+            y = DrawLine(gfx, boldFont, $"Kime: {to}", margin, y, maxWidth, lineHeight);
+            y = DrawLine(gfx, boldFont, $"Tarih: {date}", margin, y, maxWidth, lineHeight);
+            y = DrawLine(gfx, headerFont, $"Konu: {subject}", margin, y, maxWidth, lineHeight + 4);
+            y += 10;
 
-            foreach (var wl in wrappedLines)
+            // Draw separator line
+            gfx.DrawLine(XPens.Gray, margin, y, A4Constants.WidthPoints - margin, y);
+            y += 15;
+
+            // Draw body text with word wrap and pagination
+            var lines = body.Split('\n');
+            foreach (var rawLine in lines)
             {
-                if (y + lineHeight > A4Constants.HeightPoints - margin)
+                var line = rawLine.TrimEnd('\r');
+                var wrappedLines = WrapText(gfx, font, line, maxWidth);
+
+                foreach (var wl in wrappedLines)
                 {
-                    gfx.Dispose();
-                    page = AddA4Page(document);
-                    gfx = XGraphics.FromPdfPage(page);
-                    y = margin;
+                    if (y + lineHeight > A4Constants.HeightPoints - margin)
+                    {
+                        gfx.Dispose();
+                        page = AddA4Page(document);
+                        gfx = XGraphics.FromPdfPage(page);
+                        y = margin;
+                    }
+                    gfx.DrawString(wl, font, XBrushes.Black, new XPoint(margin, y));
+                    y += lineHeight;
                 }
-                gfx.DrawString(wl, font, XBrushes.Black, new XPoint(margin, y));
-                y += lineHeight;
             }
         }
+        finally
+        {
+            gfx.Dispose();
+        }
 
-        gfx.Dispose();
         document.Save(tempPath);
         return tempPath;
     }

@@ -32,6 +32,12 @@ public partial class MainWindow : Window
         };
     }
 
+    protected override void OnClosed(EventArgs e)
+    {
+        _viewModel.PropertyChanged -= ViewModel_PropertyChanged;
+        base.OnClosed(e);
+    }
+
     private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(MainViewModel.CurrentPage))
@@ -61,7 +67,7 @@ public partial class MainWindow : Window
         {
             bool large = _viewModel.IsFileSizeLarge;
             TxtFileSize.Foreground = large
-                ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xCC, 0, 0))
+                ? (System.Windows.Media.Brush)FindResource("WarningText")
                 : (System.Windows.Media.Brush)FindResource("TextPrimary");
             TxtFileSizeWarning.Visibility = large ? Visibility.Visible : Visibility.Collapsed;
         }

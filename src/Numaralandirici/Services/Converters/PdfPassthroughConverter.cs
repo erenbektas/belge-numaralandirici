@@ -10,7 +10,7 @@ public static class PdfPassthroughConverter
 {
     public static string Normalize(string pdfPath)
     {
-        var tempPath = Path.Combine(Path.GetTempPath(), $"numaralandirici_{Guid.NewGuid()}.pdf");
+        var tempPath = TempFile.NewPdf();
 
         // Check if all pages are already A4
         using var inputDoc = PdfReader.Open(pdfPath, PdfDocumentOpenMode.Import);

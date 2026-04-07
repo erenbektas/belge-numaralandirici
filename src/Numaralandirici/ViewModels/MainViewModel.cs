@@ -1,12 +1,12 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media;
 using Microsoft.Win32;
+using Numaralandirici.Helpers;
 using Numaralandirici.Models;
 using Numaralandirici.Services;
 using PdfSharp.Pdf;
@@ -19,6 +19,9 @@ public enum CompressionPreset { None, Low, High, Custom }
 
 public class MainViewModel : INotifyPropertyChanged
 {
+    // E-posta ek sınırı (birçok kurum 10-15 MB arası sınır uygular)
+    private const double FileSizeWarningThresholdMB = 11;
+
     private string _statusText = "Dosyaları sürükleyip bırakın veya ekleyin.";
     private double _progress;
     private bool _isProcessing;
@@ -175,7 +178,7 @@ public class MainViewModel : INotifyPropertyChanged
                 // Delete previous compressed version, recompress from original
                 if (_mergedTempPath != _uncompressedTempPath)
                 {
-                    try { File.Delete(_mergedTempPath); } catch { }
+                    try { File.Delete(_mergedTempPath); } catch (Exception ex) { Debug.WriteLine($"Temp dosya silinemedi: {_mergedTempPath} - {ex.Message}"); }
                 }
                 _mergedTempPath = _uncompressedTempPath;
             }
@@ -271,7 +274,7 @@ public class MainViewModel : INotifyPropertyChanged
         if (CurrentPage == AppPage.Summary)
         {
             // Go back to preview, keep temp files
-            try { if (File.Exists(_mergedTempPath)) File.Delete(_mergedTempPath); } catch { }
+            try { File.Delete(_mergedTempPath); } catch (Exception ex) { Debug.WriteLine($"Temp dosya silinemedi: {_mergedTempPath} - {ex.Message}"); }
             _mergedTempPath = "";
             CurrentPage = AppPage.Preview;
             Progress = 0;
@@ -296,7 +299,7 @@ public class MainViewModel : INotifyPropertyChanged
             preview.Rotation += 90;
     }
 
-    private async void MagnifyPage(object? param)
+    private async Task MagnifyPageAsync(object? param)
     {
         if (param is not PagePreview preview)
             return;
@@ -306,36 +309,7 @@ public class MainViewModel : INotifyPropertyChanged
             var fullImage = await PdfThumbnailGenerator.GenerateSingleAsync(
                 preview.TempPdfPath, preview.PageIndex, width: 800);
 
-            var image = new Image
-            {
-                Source = fullImage,
-                MaxHeight = 800,
-                Stretch = Stretch.Uniform
-            };
-
-            if (preview.Rotation != 0)
-            {
-                image.LayoutTransform = new RotateTransform(preview.Rotation);
-            }
-
-            var window = new Window
-            {
-                WindowStyle = WindowStyle.None,
-                ResizeMode = ResizeMode.NoResize,
-                Background = new SolidColorBrush(Color.FromArgb(240, 0, 0, 0)),
-                SizeToContent = SizeToContent.WidthAndHeight,
-                WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                Topmost = true,
-                Content = new Border
-                {
-                    Padding = new Thickness(20),
-                    Child = image
-                }
-            };
-
-            window.MouseDown += (s, e) => window.Close();
-            window.KeyDown += (s, e) => { if (e.Key == Key.Escape) window.Close(); };
-            window.ShowDialog();
+            new MagnifyWindow(fullImage, preview.Rotation).ShowDialog();
         }
         catch (Exception ex)
         {
@@ -410,7 +384,7 @@ public class MainViewModel : INotifyPropertyChanged
                         var preview = new PagePreview(thumb, fileLabel, pn, fi, pi, path)
                         {
                             RotateCommand = new RelayCommand(RotatePage),
-                            MagnifyCommand = new RelayCommand(MagnifyPage)
+                            MagnifyCommand = new RelayCommand(param => _ = MagnifyPageAsync(param))
                         };
                         Previews.Add(preview);
                     });
@@ -456,19 +430,23 @@ public class MainViewModel : INotifyPropertyChanged
             await Application.Current.Dispatcher.InvokeAsync(() =>
                 StatusText = "Döndürmeler ve damgalar uygulanıyor...");
 
+            // Snapshot collections on UI thread before background work
+            var previewsSnapshot = Previews.ToList();
+            var filesSnapshot = Files.ToList();
+            var tempPdfFilesSnapshot = _tempPdfFiles.ToList();
+
             // Apply rotations and stamps
             await Task.Run(() =>
             {
-                var previewsByFile = Previews.GroupBy(p => p.FileIndex).OrderBy(g => g.Key);
-                var filesList = Files.ToList();
+                var previewsByFile = previewsSnapshot.GroupBy(p => p.FileIndex).OrderBy(g => g.Key);
                 var stampedOrders = new HashSet<string>();
 
                 foreach (var group in previewsByFile)
                 {
                     int fileIndex = group.Key;
-                    string tempPath = _tempPdfFiles[fileIndex];
+                    string tempPath = tempPdfFilesSnapshot[fileIndex];
                     var pages = group.OrderBy(p => p.PageIndex).ToList();
-                    string orderText = filesList[fileIndex].Order.DisplayText;
+                    string orderText = filesSnapshot[fileIndex].Order.DisplayText;
                     bool shouldStamp = stampedOrders.Add(orderText);
 
                     bool anyRotated = pages.Any(p => p.Rotation != 0);
@@ -515,8 +493,8 @@ public class MainViewModel : INotifyPropertyChanged
                 StatusText = "Birleştiriliyor...");
 
             // Merge to temp file
-            _mergedTempPath = Path.Combine(Path.GetTempPath(), $"numaralandirici_merged_{Guid.NewGuid()}.pdf");
-            await Task.Run(() => PdfMerger.Merge(_tempPdfFiles, _mergedTempPath));
+            _mergedTempPath = TempFile.NewPdf("merged");
+            await Task.Run(() => PdfMerger.Merge(tempPdfFilesSnapshot, _mergedTempPath));
 
             // Calculate summary info
             int pageCount = 0;
@@ -622,7 +600,7 @@ public class MainViewModel : INotifyPropertyChanged
         long fileSizeBytes = fileInfo.Length;
         double fileSizeMB = fileSizeBytes / (1024.0 * 1024.0);
 
-        IsFileSizeLarge = fileSizeMB > 11;
+        IsFileSizeLarge = fileSizeMB > FileSizeWarningThresholdMB;
         SummaryFileSize = fileSizeMB >= 1
             ? $"{fileSizeMB:F1} MB"
             : $"{fileSizeBytes / 1024.0:F0} KB";
@@ -631,10 +609,10 @@ public class MainViewModel : INotifyPropertyChanged
     private void CleanupAll()
     {
         CleanupTempFiles();
-        try { if (File.Exists(_mergedTempPath)) File.Delete(_mergedTempPath); } catch { }
+        try { File.Delete(_mergedTempPath); } catch (Exception ex) { Debug.WriteLine($"Temp dosya silinemedi: {_mergedTempPath} - {ex.Message}"); }
         if (!string.IsNullOrEmpty(_uncompressedTempPath) && _uncompressedTempPath != _mergedTempPath)
         {
-            try { File.Delete(_uncompressedTempPath); } catch { }
+            try { File.Delete(_uncompressedTempPath); } catch (Exception ex) { Debug.WriteLine($"Temp dosya silinemedi: {_uncompressedTempPath} - {ex.Message}"); }
         }
         _mergedTempPath = "";
         _uncompressedTempPath = "";
@@ -653,7 +631,7 @@ public class MainViewModel : INotifyPropertyChanged
     {
         foreach (var temp in _tempPdfFiles)
         {
-            try { if (File.Exists(temp)) File.Delete(temp); } catch { }
+            try { File.Delete(temp); } catch (Exception ex) { Debug.WriteLine($"Temp dosya silinemedi: {temp} - {ex.Message}"); }
         }
         _tempPdfFiles.Clear();
     }

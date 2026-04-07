@@ -17,7 +17,7 @@
                        HorizontalAlignment="Center" Margin="0,0,0,4"/>
 
             <!-- Version -->
-            <TextBlock Text="v2.0.0" FontSize="13" Foreground="{StaticResource TextSecondary}"
+            <TextBlock x:Name="TxtVersion" FontSize="13" Foreground="{StaticResource TextSecondary}"
                        HorizontalAlignment="Center" Margin="0,0,0,15"/>
 
             <!-- Description -->

@@ -1,14 +1,14 @@
 [Setup]
 AppId={{B7E3F2A1-4D5C-6E7F-8A9B-0C1D2E3F4A5B}
 AppName=Numaralandırıcı
-AppVersion=2.1.0
-AppVerName=Numaralandırıcı 2.1.0
+AppVersion=2.5.0
+AppVerName=Numaralandırıcı 2.5.0
 AppPublisher=Y. Eren Bektaş
 DefaultDirName={autopf}\Numaralandirici
 DefaultGroupName=Numaralandırıcı
 UninstallDisplayIcon={app}\Numaralandirici.exe
 OutputDir=installer-output
-OutputBaseFilename=Numaralandirici-v2.1.0-Setup
+OutputBaseFilename=Numaralandirici-v2.5.0-Setup
 Compression=lzma2/ultra64
 SolidCompression=yes
 SetupIconFile=src\Numaralandirici\icon.ico

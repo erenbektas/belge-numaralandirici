@@ -1,4 +1,3 @@
-using System.IO;
 using Numaralandirici.Helpers;
 using PdfSharp;
 using PdfSharp.Drawing;
@@ -10,7 +9,7 @@ public static class ImageToPdfConverter
 {
     public static string Convert(string imagePath)
     {
-        var tempPath = Path.Combine(Path.GetTempPath(), $"numaralandirici_{Guid.NewGuid()}.pdf");
+        var tempPath = TempFile.NewPdf();
         using var document = new PdfDocument();
         var page = document.AddPage();
         page.Width = XUnitPt.FromPoint(A4Constants.WidthPoints);

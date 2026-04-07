@@ -1,5 +1,29 @@
 # Değişiklik Günlüğü (Changelog)
 
+## [2.5.0] - 2026-04-07
+
+### Eklendi
+- **Başlangıç Temizliği:** Uygulama açılışında önceki çalışmalardan kalan geçici dosyalar otomatik temizlenir.
+- **MagnifyWindow:** Büyütme önizlemesi artık XAML tabanlı ayrı bir pencere olarak tanımlanmıştır.
+- **TempFile Yardımcı Sınıfı:** Geçici dosya yolu oluşturma tek bir merkezden yönetilir.
+- **COM Zaman Aşımı:** Word ve Excel dönüştürme işlemlerinde 2 dakikalık zaman aşımı eklendi; Office takılırsa uygulama donmaz.
+- **Tema Renk Kaynakları:** `WarningText` ve `MagnifyOverlay` renkleri App.xaml kaynaklarına taşındı.
+
+### Düzeltildi
+- **Thread Safety:** Koleksiyonlar arka plan iş parçacığına geçmeden önce kopyalanarak yarış durumu önlendi.
+- **Bellek Sızıntısı:** `MainWindow` kapanışında `PropertyChanged` olay aboneliği kaldırılarak düzeltildi.
+- **async void:** `MagnifyPage` metodu `async Task` olarak değiştirildi.
+- **TOCTOU:** `File.Exists` kontrolü kaldırılarak dosya silme yarış durumu düzeltildi.
+- **XGraphics Sızıntısı:** `MsgToPdfConverter` içinde `XGraphics` nesnesi `try/finally` ile korundu.
+- **Boş Catch Blokları:** 9 adet sessiz `catch { }` bloğu `Debug.WriteLine` ile loglama eklenerek güncellendi.
+- **Sürüm Uyuşmazlığı:** Hakkında penceresinde sabit sürüm numarası yerine derleme sürümü dinamik olarak gösterilir.
+
+### Değiştirildi
+- **Süreç Argümanları:** PdfCompressor'da Ghostscript/QPDF argümanları `ArgumentList` koleksiyonu ile geçirilir.
+- **Dosya Boyutu Eşiği:** 11 MB uyarı eşiği `FileSizeWarningThresholdMB` sabiti olarak tanımlandı.
+
+---
+
 ## [2.1.0] - 2026-04-02
 
 ### Eklendi
