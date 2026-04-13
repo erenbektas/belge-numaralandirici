@@ -2,15 +2,15 @@
 
 ## [2.5.1] - 2026-04-13
 
-### DÃ¼zeltildi
-- **Office COM YaÅŸam DÃ¶ngÃ¼sÃ¼:** Word ve Excel dÃ¶nÃ¼ÅŸtÃ¼rmelerinde COM nesneleri artÄ±k aynÄ± STA iÅŸ parÃ§acÄ±ÄŸÄ± Ã¼zerinde oluÅŸturulup temizlenir. Bu sayede Ã§apraz thread temizleme kaynaklÄ± kilitlenme ve sÃ¼reÃ§ sÄ±zÄ±ntÄ±sÄ± riski azaltÄ±ldÄ±.
-- **STA YardÄ±mcÄ±sÄ±:** `StaTask` zaman aÅŸÄ±mÄ±yla hataya dÃ¼ÅŸÃ¼p arka planda Ã§alÄ±ÅŸmaya devam eden davranÄ±ÅŸ yerine, STA iÅŸini tamamlanana kadar bekleyecek ÅŸekilde sadeleÅŸtirildi.
-- **NumarasÄ±z Dosyalar:** NumarasÄ±z dosyalar artÄ±k listede `NumarasÄ±z` olarak gÃ¶sterilir, sÄ±ralamada en sona atÄ±lÄ±r ve damgalama sÄ±rasÄ±nda boÅŸ numara ile iÅŸaretlenmez.
-- **Buton Yenileme:** Dosya listesi deÄŸiÅŸtiÄŸinde komut durumu yeniden deÄŸerlendirilerek butonlarÄ±n gri kalma ihtimali azaltÄ±ldÄ±.
+### Düzeltildi
+- **Office COM Yaşam Döngüsü:** Word ve Excel dönüştürmelerinde COM nesneleri artık aynı STA iş parçacığı üzerinde oluşturulup temizlenir. Bu sayede çapraz thread temizleme kaynaklı kilitlenme ve süreç sızıntısı riski azaltıldı.
+- **STA Yardımcısı:** `StaTask`, zaman aşımıyla hataya düşüp arka planda çalışmaya devam eden davranış yerine STA işini tamamlanana kadar bekleyecek şekilde sadeleştirildi.
+- **Numarasız Dosyalar:** Numarasız dosyalar artık listede `Numarasız` olarak gösterilir, sıralamada en sona atılır ve damgalama sırasında boş numara ile işaretlenmez.
+- **Buton Yenileme:** Dosya listesi değiştiğinde komut durumu yeniden değerlendirilerek butonların gri kalma ihtimali azaltıldı.
 
-### DoÄŸrulandÄ±
-- **Derleme KontrolÃ¼:** Proje `dotnet build` ile baÅŸarÄ±yla derlendi.
-- **GerÃ§ek Excel Senaryosu:** `1.6. Dorse BakÄ±m Raporu.xlsx` dosyasÄ± ile Excel'den PDF'e dÃ¶nÃ¼ÅŸtÃ¼rme baÅŸarÄ±yla Ã§alÄ±ÅŸtÄ± ve iÅŸlem sonrasÄ±nda artÄ±kta kalan `EXCEL` sÃ¼reci gÃ¶zlenmedi.
+### Doğrulandı
+- **Derleme Kontrolü:** Proje `dotnet build` ile başarıyla derlendi.
+- **Gerçek Excel Senaryosu:** `1.6. Dorse Bakım Raporu.xlsx` dosyası ile Excel'den PDF'e dönüştürme başarıyla çalıştı ve işlem sonrasında artıkta kalan `EXCEL` süreci gözlenmedi.
 
 ## [2.5.0] - 2026-04-07
 
@@ -44,27 +44,27 @@
 - **3 Aşamalı İş Akışı:** Dosya listesi → önizleme → özet sayfası. Özet sayfasında dosya boyutu, sayfa sayısı, sıkıştırma seçenekleri ve önizleme/kaydetme butonları yer alır.
 - **Sayfa Döndürme:** Önizleme sayfasında her sayfa için 90 derece saat yönünde döndürme. Döndürme fiziksel olarak uygulanır (koordinat sistemi dönüşür), damga her zaman doğru köşeye yerleşir.
 - **Büyütme Önizleme:** Önizleme sayfasında her sayfayı büyüterek inceleme. Koyu arka planlı kenarsız pencerede açılır, tıklama veya Escape ile kapanır.
-- **JFIF Desteği:** .jfif görsel formatı artık destekleniyor.
+- **JFIF Desteği:** `.jfif` görsel formatı artık destekleniyor.
 - **Dosya Boyutu Uyarısı:** 11 MB üzerindeki çıktılar için kırmızı renkte "Yüksek dosya boyutu" uyarısı.
 - **Akıllı Damgalama:** Aynı sıra numarasına sahip birden fazla dosyada yalnızca ilk dosyanın ilk sayfasına damga vurulur.
 - **Önizlemede Dosya Adları:** Küçük resim önizlemelerinin altında sıra numarası yerine dosya adları gösterilir.
 
 ### Değiştirildi
-- **Office Interop:** Sürüm bağımlı NuGet paketleri kaldırıldı, yerine late-binding COM (dynamic) kullanıldı. Artık tüm Office sürümleriyle (2013, 2016, 2019, 365) çalışır.
+- **Office Interop:** Sürüm bağımlı NuGet paketleri kaldırıldı, yerine late-binding COM (`dynamic`) kullanıldı. Artık tüm Office sürümleriyle (2013, 2016, 2019, 365) çalışır.
 - **Damga Stili:** Yarı saydam gri daire (%40 opaklık arka plan, %70 opaklık metin), gölge kaldırıldı.
 - **Modern Arayüz:** Yuvarlak köşeler, ince kaydırma çubukları, dairesel butonlar (döndürme/büyütme), koyu tema renk paleti, modern tooltip stili.
 
 ### Düzeltildi
-- **Buton Durumu:** Sürükle-bırak sonrası ve sayfa geçişlerinde butonların gri kalma sorunu düzeltildi (CommandManager.InvalidateRequerySuggested).
-- **Döndürme ve Damga:** Page.Rotate bayrağı yerine fiziksel döndürme uygulandı. Damga artık döndürülmüş sayfanın gerçek sol üst köşesine yerleşir.
-- **Pencere Arka Planı:** WPF implicit Window stili uygulanmama sorunu düzeltildi (explicit Background eklendi).
+- **Buton Durumu:** Sürükle-bırak sonrası ve sayfa geçişlerinde butonların gri kalma sorunu düzeltildi (`CommandManager.InvalidateRequerySuggested`).
+- **Döndürme ve Damga:** `Page.Rotate` bayrağı yerine fiziksel döndürme uygulandı. Damga artık döndürülmüş sayfanın gerçek sol üst köşesine yerleşir.
+- **Pencere Arka Planı:** WPF implicit `Window` stili uygulanmama sorunu düzeltildi (`Background` açıkça eklendi).
 
 ---
 
 ## [Yayınlanmamış - Önceki Sürümler]
 
 ### Eklendi
-- **MSG Dosya Desteği:** Artık Outlook (.msg) dosyalarını sürükleyip bırakarak PDF'e dönüştürebilirsiniz.
+- **MSG Dosya Desteği:** Artık Outlook (`.msg`) dosyalarını sürükleyip bırakarak PDF'e dönüştürebilirsiniz.
 - **Güvenli Dönüştürme:** Dosya yollarındaki Türkçe ve özel karakter sorunlarını çözen güvenli kopyalama mekanizması.
 - **PDF Sıkıştırma:** "Oluştur" aşamasından sonra dosyaları farklı kalite ayarlarında sıkıştırarak boyutunu küçültme özelliği.
 - **Yeni Arayüz:** Modern, koyu temalı kullanıcı arayüzü.
