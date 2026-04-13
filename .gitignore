@@ -22,6 +22,7 @@ artifacts/
 ## Build results
 [Dd]ebug/
 [Rr]elease/
+installer-output/
 x64/
 x86/
 [Ww][Ii][Nn]32/

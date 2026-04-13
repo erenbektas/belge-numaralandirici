@@ -1,14 +1,14 @@
 [Setup]
 AppId={{B7E3F2A1-4D5C-6E7F-8A9B-0C1D2E3F4A5B}
 AppName=Numaralandırıcı
-AppVersion=2.5.0
-AppVerName=Numaralandırıcı 2.5.0
+AppVersion=2.5.1
+AppVerName=Numaralandırıcı 2.5.1
 AppPublisher=Y. Eren Bektaş
 DefaultDirName={autopf}\Numaralandirici
 DefaultGroupName=Numaralandırıcı
 UninstallDisplayIcon={app}\Numaralandirici.exe
 OutputDir=installer-output
-OutputBaseFilename=Numaralandirici-v2.5.0-Setup
+OutputBaseFilename=Numaralandirici-v2.5.1-Setup
 Compression=lzma2/ultra64
 SolidCompression=yes
 SetupIconFile=src\Numaralandirici\icon.ico
@@ -25,8 +25,8 @@ Name: "desktopicon"; Description: "Masaüstü kısayolu oluştur"; GroupDescript
 
 [Files]
 Source: "src\Numaralandirici\bin\Release\net8.0-windows\win-x64\publish\Numaralandirici.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "src\Numaralandirici\bin\Release\net8.0-windows\win-x64\publish\tools\gs\*"; DestDir: "{app}\tools\gs"; Flags: ignoreversion recursesubdirs
-Source: "src\Numaralandirici\bin\Release\net8.0-windows\win-x64\publish\tools\qpdf\*"; DestDir: "{app}\tools\qpdf"; Flags: ignoreversion recursesubdirs
+Source: "src\Numaralandirici\tools\gs\*"; DestDir: "{app}\tools\gs"; Flags: ignoreversion recursesubdirs
+Source: "src\Numaralandirici\tools\qpdf\*"; DestDir: "{app}\tools\qpdf"; Flags: ignoreversion recursesubdirs
 
 [Icons]
 Name: "{group}\Numaralandırıcı"; Filename: "{app}\Numaralandirici.exe"
