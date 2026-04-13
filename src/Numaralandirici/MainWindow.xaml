@@ -18,8 +18,20 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Title -->
-        <TextBlock Grid.Row="0" Text="Numaralandırıcı" FontSize="22" FontWeight="SemiBold" Margin="0,0,0,10"/>
+        <!-- Title Bar -->
+        <Grid Grid.Row="0" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock Text="Numaralandırıcı" FontSize="20" FontWeight="SemiBold"/>
+                <TextBlock Text="Grup Sigorta Ekspertiz Hizmetleri Limited Şirketi"
+                           FontSize="9" Foreground="{StaticResource TextSecondary}" Margin="0,2,0,0"/>
+            </StackPanel>
+        </Grid>
 
         <!-- PAGE 1: File List -->
         <Grid Grid.Row="1" x:Name="FileListPage">
