@@ -7,17 +7,15 @@ namespace Numaralandirici.Services.Converters;
 
 public static class WordToPdfConverter
 {
-    private static readonly TimeSpan Timeout = TimeSpan.FromMinutes(2);
-
     public static string Convert(string wordPath)
     {
         var tempPath = TempFile.NewPdf();
-        dynamic? wordApp = null;
-        dynamic? doc = null;
 
-        try
+        StaTask.Run(() =>
         {
-            var task = Task.Run(() =>
+            dynamic? wordApp = null;
+            dynamic? doc = null;
+            try
             {
                 var wordType = Type.GetTypeFromProgID("Word.Application")
                     ?? throw new Exception("Microsoft Word yüklü değil.");
@@ -33,33 +31,28 @@ public static class WordToPdfConverter
 
                 // wdExportFormatPDF = 17, wdExportOptimizeForPrint = 0
                 doc.ExportAsFixedFormat(tempPath, 17, OptimizeFor: 0);
-            });
-
-            if (!task.Wait(Timeout))
-                throw new TimeoutException($"Word dönüştürme zaman aşımına uğradı ({Timeout.TotalSeconds}s).");
-
-            task.GetAwaiter().GetResult(); // propagate exceptions
-        }
-        finally
-        {
-            try
+            }
+            finally
             {
-                if (doc != null)
+                try
                 {
-                    doc.Close(0); // wdDoNotSaveChanges
-                    Marshal.ReleaseComObject(doc);
+                    if (doc != null)
+                    {
+                        doc.Close(0); // wdDoNotSaveChanges
+                        Marshal.ReleaseComObject(doc);
+                    }
+                    if (wordApp != null)
+                    {
+                        wordApp.Quit(0); // wdDoNotSaveChanges
+                        Marshal.ReleaseComObject(wordApp);
+                    }
                 }
-                if (wordApp != null)
+                catch (Exception ex)
                 {
-                    wordApp.Quit(0); // wdDoNotSaveChanges
-                    Marshal.ReleaseComObject(wordApp);
+                    Debug.WriteLine($"Word COM temizleme hatası: {ex.Message}");
                 }
             }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Word COM temizleme hatası: {ex.Message}");
-            }
-        }
+        }).GetAwaiter().GetResult();
 
         var normalized = PdfPassthroughConverter.Normalize(tempPath);
         if (normalized != tempPath)

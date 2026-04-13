@@ -1,5 +1,17 @@
 # Değişiklik Günlüğü (Changelog)
 
+## [2.5.1] - 2026-04-13
+
+### DÃ¼zeltildi
+- **Office COM YaÅŸam DÃ¶ngÃ¼sÃ¼:** Word ve Excel dÃ¶nÃ¼ÅŸtÃ¼rmelerinde COM nesneleri artÄ±k aynÄ± STA iÅŸ parÃ§acÄ±ÄŸÄ± Ã¼zerinde oluÅŸturulup temizlenir. Bu sayede Ã§apraz thread temizleme kaynaklÄ± kilitlenme ve sÃ¼reÃ§ sÄ±zÄ±ntÄ±sÄ± riski azaltÄ±ldÄ±.
+- **STA YardÄ±mcÄ±sÄ±:** `StaTask` zaman aÅŸÄ±mÄ±yla hataya dÃ¼ÅŸÃ¼p arka planda Ã§alÄ±ÅŸmaya devam eden davranÄ±ÅŸ yerine, STA iÅŸini tamamlanana kadar bekleyecek ÅŸekilde sadeleÅŸtirildi.
+- **NumarasÄ±z Dosyalar:** NumarasÄ±z dosyalar artÄ±k listede `NumarasÄ±z` olarak gÃ¶sterilir, sÄ±ralamada en sona atÄ±lÄ±r ve damgalama sÄ±rasÄ±nda boÅŸ numara ile iÅŸaretlenmez.
+- **Buton Yenileme:** Dosya listesi deÄŸiÅŸtiÄŸinde komut durumu yeniden deÄŸerlendirilerek butonlarÄ±n gri kalma ihtimali azaltÄ±ldÄ±.
+
+### DoÄŸrulandÄ±
+- **Derleme KontrolÃ¼:** Proje `dotnet build` ile baÅŸarÄ±yla derlendi.
+- **GerÃ§ek Excel Senaryosu:** `1.6. Dorse BakÄ±m Raporu.xlsx` dosyasÄ± ile Excel'den PDF'e dÃ¶nÃ¼ÅŸtÃ¼rme baÅŸarÄ±yla Ã§alÄ±ÅŸtÄ± ve iÅŸlem sonrasÄ±nda artÄ±kta kalan `EXCEL` sÃ¼reci gÃ¶zlenmedi.
+
 ## [2.5.0] - 2026-04-07
 
 ### Eklendi

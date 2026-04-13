@@ -131,6 +131,8 @@ public class MainViewModel : INotifyPropertyChanged
         RemoveFileCommand = new RelayCommand(param => RemoveFile(param), _ => !IsProcessing);
         SelectPresetCommand = new RelayCommand(param => SelectPreset(param), _ => !IsProcessing);
         CompressCommand = new RelayCommand(async _ => await CompressAsync(), _ => !IsProcessing && SelectedPreset != CompressionPreset.None);
+
+        Files.CollectionChanged += (_, _) => CommandManager.InvalidateRequerySuggested();
     }
 
     private void SelectPreset(object? param)
@@ -446,8 +448,9 @@ public class MainViewModel : INotifyPropertyChanged
                     int fileIndex = group.Key;
                     string tempPath = tempPdfFilesSnapshot[fileIndex];
                     var pages = group.OrderBy(p => p.PageIndex).ToList();
-                    string orderText = filesSnapshot[fileIndex].Order.DisplayText;
-                    bool shouldStamp = stampedOrders.Add(orderText);
+                    var order = filesSnapshot[fileIndex].Order;
+                    string orderText = order.IsEmpty ? "" : order.DisplayText;
+                    bool shouldStamp = !string.IsNullOrEmpty(orderText) && stampedOrders.Add(orderText);
 
                     bool anyRotated = pages.Any(p => p.Rotation != 0);
                     if (!anyRotated)

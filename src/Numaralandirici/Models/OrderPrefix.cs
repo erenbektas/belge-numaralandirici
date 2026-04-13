@@ -45,7 +45,7 @@ public class OrderPrefix : IComparable<OrderPrefix>
     private string BuildDisplayText()
     {
         if (Segments.Count == 0)
-            return "";
+            return "Numarasız";
 
         var parts = new List<string>();
         for (int i = 0; i < Segments.Count; i++)
@@ -55,9 +55,15 @@ public class OrderPrefix : IComparable<OrderPrefix>
         return string.Join(".", parts);
     }
 
+    public bool IsEmpty => Segments.Count == 0;
+
     public int CompareTo(OrderPrefix? other)
     {
         if (other is null) return 1;
+
+        // Empty prefixes (unnumbered files) sort last
+        if (IsEmpty && !other.IsEmpty) return 1;
+        if (!IsEmpty && other.IsEmpty) return -1;
 
         int minLen = Math.Min(Segments.Count, other.Segments.Count);
         for (int i = 0; i < minLen; i++)

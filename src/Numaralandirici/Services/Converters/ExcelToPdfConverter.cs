@@ -7,17 +7,15 @@ namespace Numaralandirici.Services.Converters;
 
 public static class ExcelToPdfConverter
 {
-    private static readonly TimeSpan Timeout = TimeSpan.FromMinutes(2);
-
     public static string Convert(string excelPath)
     {
         var tempPath = TempFile.NewPdf();
-        dynamic? excelApp = null;
-        dynamic? workbook = null;
 
-        try
+        StaTask.Run(() =>
         {
-            var task = Task.Run(() =>
+            dynamic? excelApp = null;
+            dynamic? workbook = null;
+            try
             {
                 var excelType = Type.GetTypeFromProgID("Excel.Application")
                     ?? throw new Exception("Microsoft Excel yüklü değil.");
@@ -41,33 +39,28 @@ public static class ExcelToPdfConverter
 
                 // xlTypePDF = 0
                 workbook.ExportAsFixedFormat(0, tempPath);
-            });
-
-            if (!task.Wait(Timeout))
-                throw new TimeoutException($"Excel dönüştürme zaman aşımına uğradı ({Timeout.TotalSeconds}s).");
-
-            task.GetAwaiter().GetResult(); // propagate exceptions
-        }
-        finally
-        {
-            try
+            }
+            finally
             {
-                if (workbook != null)
+                try
                 {
-                    workbook.Close(false);
-                    Marshal.ReleaseComObject(workbook);
+                    if (workbook != null)
+                    {
+                        workbook.Close(false);
+                        Marshal.ReleaseComObject(workbook);
+                    }
+                    if (excelApp != null)
+                    {
+                        excelApp.Quit();
+                        Marshal.ReleaseComObject(excelApp);
+                    }
                 }
-                if (excelApp != null)
+                catch (Exception ex)
                 {
-                    excelApp.Quit();
-                    Marshal.ReleaseComObject(excelApp);
+                    Debug.WriteLine($"Excel COM temizleme hatası: {ex.Message}");
                 }
             }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Excel COM temizleme hatası: {ex.Message}");
-            }
-        }
+        }).GetAwaiter().GetResult();
 
         var normalized = PdfPassthroughConverter.Normalize(tempPath);
         if (normalized != tempPath)
